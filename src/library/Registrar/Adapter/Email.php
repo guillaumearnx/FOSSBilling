@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -38,22 +39,17 @@ class Registrar_Adapter_Email extends Registrar_AdapterAbstract
             'label' => 'This registrar type sends notifications to the given email about domain management events. For example, when client registers a new domain an email with domain details will be sent to you. It is then your responsibility to register domain on real registrar.',
             'form' => [
                 'email' => ['text', [
-                            'label' => 'Email address',
-                            'description' => 'Email to send domain change notifications',
-                    ],
-                 ],
+                    'label' => 'Email address',
+                    'description' => 'Email to send domain change notifications',
+                ],
+                ],
                 'use_whois' => ['radio', [
-                            'multiOptions' => ['1' => 'Yes', '0' => 'No'],
-                            'label' => 'Use WHOIS to check for domain availability',
-                    ],
-                 ],
+                    'multiOptions' => ['1' => 'Yes', '0' => 'No'],
+                    'label' => 'Use WHOIS to check for domain availability',
+                ],
+                ],
             ],
         ];
-    }
-
-    public function getTlds()
-    {
-        return [];
     }
 
     public function isDomainAvailable(Registrar_Domain $domain)
@@ -66,12 +62,12 @@ class Registrar_Adapter_Email extends Registrar_AdapterAbstract
             return $whois->isDomainAvailable($domain->getName());
         }
 
-        throw new Registrar_Exception('Email registrar is unable to :action:', [':type:' => 'Email', ':action:' => 'determine domain availability']);
+        throw new Registrar_Exception(':type: registrar is unable to :action:', [':type:' => 'Email', ':action:' => 'determine domain availability']);
     }
 
     public function isDomaincanBeTransferred(Registrar_Domain $domain): never
     {
-        throw new Registrar_Exception('Email registrar is unable to :action:', [':type:' => 'Email', ':action:' => 'determine domain transferability']);
+        throw new Registrar_Exception(':type: registrar is unable to :action:', [':type:' => 'Email', ':action:' => 'determine domain transferability']);
     }
 
     public function modifyNs(Registrar_Domain $domain)

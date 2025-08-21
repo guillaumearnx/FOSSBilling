@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Client\Api;
 
 class AdminTest extends \BBTestCase
 {
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $admin_Client = new \Box\Mod\Client\Api\Admin();
@@ -13,24 +13,29 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testgetList()
+    public function testgetList(): void
     {
         $simpleResultArr = [
             'list' => [
                 ['id' => 1],
             ],
         ];
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
-        $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
-            ->willReturn($simpleResultArr);
 
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
-        $serviceMock->expects($this->atLeastOnce())->
-        method('getSearchQuery');
-        $serviceMock->expects($this->atLeastOnce())->
-        method('toApiArray')
+        $serviceMock->expects($this->atLeastOnce())
+            ->method('getSearchQuery')
+            ->willReturn(['String', []]);
+        $serviceMock->expects($this->atLeastOnce())
+            ->method('toApiArray')
             ->willReturn([]);
+
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+            ->onlyMethods(['getPaginatedResultSet'])
+            ->getMock();
+
+        $pagerMock->expects($this->atLeastOnce())
+            ->method('getPaginatedResultSet')
+            ->willReturn($simpleResultArr);
 
         $model = new \Model_Client();
         $model->loadBean(new \DummyBean());
@@ -52,7 +57,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testGetPairs()
+    public function testGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())->
@@ -69,7 +74,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testget()
+    public function testget(): void
     {
         $model = new \Model_Client();
         $model->loadBean(new \DummyBean());
@@ -88,7 +93,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testlogin()
+    public function testlogin(): void
     {
         $model = new \Model_Client();
         $model->loadBean(new \DummyBean());
@@ -129,7 +134,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testCreate()
+    public function testCreate(): void
     {
         $data = [
             'email' => 'email@example.com',
@@ -169,7 +174,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsInt($result, 'create() returned: ' . $result);
     }
 
-    public function testCreateEmailRegisteredException()
+    public function testCreateEmailRegisteredException(): void
     {
         $data = [
             'email' => 'email@example.com',
@@ -194,11 +199,11 @@ class AdminTest extends \BBTestCase
         $admin_Client->setService($serviceMock);
 
         $this->expectException(\FOSSBilling\Exception::class);
-        $this->expectExceptionMessage('Email is already registered.');
+        $this->expectExceptionMessage('This email address is already registered.');
         $admin_Client->create($data);
     }
 
-    public function testdelete()
+    public function testdelete(): void
     {
         $data = ['id' => 1];
 
@@ -237,7 +242,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testupdate()
+    public function testupdate(): void
     {
         $data = [
             'id' => 1,
@@ -321,7 +326,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testupdateEmailALreadyRegistered()
+    public function testupdateEmailALreadyRegistered(): void
     {
         $data = [
             'id' => 1,
@@ -400,11 +405,11 @@ class AdminTest extends \BBTestCase
         $admin_Client->setDi($di);
 
         $this->expectException(\FOSSBilling\Exception::class);
-        $this->expectExceptionMessage('Can not change email. It is already registered.');
+        $this->expectExceptionMessage('This email address is already registered.');
         $admin_Client->update($data);
     }
 
-    public function testUpdateIdException()
+    public function testUpdateIdException(): void
     {
         $data = [];
         $admin_Client = new \Box\Mod\Client\Api\Admin();
@@ -419,7 +424,7 @@ class AdminTest extends \BBTestCase
         $admin_Client->update($data);
     }
 
-    public function testchangePassword()
+    public function testchangePassword(): void
     {
         $data = [
             'id' => 1,
@@ -441,7 +446,7 @@ class AdminTest extends \BBTestCase
         $eventMock->expects($this->atLeastOnce())->
         method('fire');
 
-        $passwordMock = $this->getMockBuilder('\Box_Password')->getMock();
+        $passwordMock = $this->getMockBuilder('\FOSSBilling\PasswordManager')->getMock();
         $passwordMock->expects($this->atLeastOnce())
             ->method('hashIt')
             ->with($data['password']);
@@ -467,7 +472,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testchangePasswordPasswordMismatch()
+    public function testchangePasswordPasswordMismatch(): void
     {
         $data = [
             'id' => 1,
@@ -490,7 +495,7 @@ class AdminTest extends \BBTestCase
         $admin_Client->change_password($data);
     }
 
-    public function testbalanceGetList()
+    public function testbalanceGetList(): void
     {
         $simpleResultArr = [
             'list' => [
@@ -505,14 +510,19 @@ class AdminTest extends \BBTestCase
         ];
 
         $data = [];
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
-        $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
-            ->willReturn($simpleResultArr);
 
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\ServiceBalance::class)->getMock();
-        $serviceMock->expects($this->atLeastOnce())->
-        method('getSearchQuery');
+        $serviceMock->expects($this->atLeastOnce())
+            ->method('getSearchQuery')
+            ->willReturn(['String', []]);
+
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+            ->onlyMethods(['getPaginatedResultSet'])
+            ->getMock();
+
+        $pagerMock->expects($this->atLeastOnce())
+            ->method('getPaginatedResultSet')
+            ->willReturn($simpleResultArr);
 
         $model = new \Model_ClientBalance();
         $model->loadBean(new \DummyBean());
@@ -528,7 +538,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testbalanceDelete()
+    public function testbalanceDelete(): void
     {
         $data = [
             'id' => 1,
@@ -560,7 +570,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testbalanceAddFunds()
+    public function testbalanceAddFunds(): void
     {
         $data = [
             'id' => 1,
@@ -596,7 +606,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testbatchExpirePasswordReminders()
+    public function testbatchExpirePasswordReminders(): void
     {
         $expiredArr = [
             new \Model_ClientPasswordReset(),
@@ -622,20 +632,24 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testloginHistoryGetList()
+    public function testloginHistoryGetList(): void
     {
         $data = [];
-
-        $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
-        $serviceMock->expects($this->atLeastOnce())->
-        method('getHistorySearchQuery')->willReturn(['sql', 'params']);
-
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
         $pagerResultSet = [
             'list' => [],
         ];
+
+        $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
+        $serviceMock->expects($this->atLeastOnce())
+            ->method('getHistorySearchQuery')
+            ->willReturn(['String', []]);
+
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+            ->onlyMethods(['getPaginatedResultSet'])
+            ->getMock();
+
         $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($pagerResultSet);
 
         $di = new \Pimple\Container();
@@ -649,7 +663,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetStatuses()
+    public function testgetStatuses(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())->
@@ -665,7 +679,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgroupGetPairs()
+    public function testgroupGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())->
@@ -681,7 +695,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgroupCreate()
+    public function testgroupCreate(): void
     {
         $data['title'] = 'test Group';
 
@@ -707,7 +721,7 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($newGroupId, $result);
     }
 
-    public function testgroupUpdate()
+    public function testgroupUpdate(): void
     {
         $data['id'] = '2';
         $data['title'] = 'test Group updated';
@@ -739,7 +753,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testgroupDelete()
+    public function testgroupDelete(): void
     {
         $data['id'] = '2';
 
@@ -778,7 +792,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testgroupGet()
+    public function testgroupGet(): void
     {
         $data['id'] = '2';
 
@@ -808,7 +822,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testloginHistoryDelete()
+    public function testloginHistoryDelete(): void
     {
         $validatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Validate::class)->getMock();
         $validatorMock->expects($this->atLeastOnce())
@@ -832,7 +846,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchDelete()
+    public function testBatchDelete(): void
     {
         $activityMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Api\Admin::class)->onlyMethods(['delete'])->getMock();
         $activityMock->expects($this->atLeastOnce())->method('delete')->willReturn(true);
@@ -850,7 +864,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchDeleteLog()
+    public function testBatchDeleteLog(): void
     {
         $activityMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Api\Admin::class)->onlyMethods(['login_history_delete'])->getMock();
         $activityMock->expects($this->atLeastOnce())->method('login_history_delete')->willReturn(true);

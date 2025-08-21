@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -15,6 +15,7 @@ namespace FOSSBilling;
 use Symfony\Component\Filesystem\Exception\FileNotFoundException;
 use Symfony\Component\Filesystem\Exception\IOException;
 use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 
 class Config
 {
@@ -85,27 +86,28 @@ class Config
         $filesystem = new Filesystem();
 
         try {
-            $filesystem->copy(PATH_CONFIG, substr(PATH_CONFIG, 0, -4) . '.old.php');
+            $filesystem->copy(PATH_CONFIG, Path::changeExtension(PATH_CONFIG, 'old.php'));
         } catch (FileNotFoundException|IOException) {
-            throw new Exception('Unable to create backup of configuration file.');
+            throw new Exception('An error occurred when creating a backup of the configuration file.');
         }
 
         try {
             $filesystem->dumpFile(PATH_CONFIG, self::prettyPrintArrayToPHP($newConfig));
         } catch (IOException) {
-            throw new Exception('Error when writing updated configuration file.');
+            throw new Exception('An error occurred when writing the updated configuration file.');
         }
 
         if ($clearCache) {
+            // If opcache is installed and enabled, invalidate the cache for the config file
             if (function_exists('opcache_invalidate') && function_exists('opcache_compile_file')) {
-                @touch(PATH_CACHE, time() - 6400);
+                @$filesystem->touch(PATH_CACHE);
                 @opcache_invalidate(PATH_CONFIG, true);
                 @opcache_compile_file(PATH_CONFIG);
             }
 
             try {
                 $filesystem->remove(PATH_CACHE);
-                $filesystem->mkdir(PATH_CACHE, 0755);
+                $filesystem->mkdir(PATH_CACHE, 0o755);
             } catch (\Exception) {
                 // We shouldn't need to halt execution if there was an error when clearing the cache
             }
@@ -129,9 +131,8 @@ class Config
             // Extra spacing between each "primary" key for slightly improved readability
             $output .= PHP_EOL . "    '" . $key . "'" . self::recursivelyIdentAndFormat($value);
         }
-        $output .= '];';
 
-        return $output;
+        return $output . '];';
     }
 
     /**
@@ -142,24 +143,24 @@ class Config
     private static function recursivelyIdentAndFormat(array|string|bool|float|int $value, $level = 1): string
     {
         if ($level > self::MAX_RECURSION_LEVEL) {
-            throw new Exception('Too many iterations performed while formatting the config file');
+            throw new Exception('Too many iterations were performed while formatting the config file');
         }
 
         // Handle strings (Outputs `=> 'strict',`)
         if (is_string($value)) {
-            return " => '" . $value . "'," . PHP_EOL;
+            return " => '{$value}'," . PHP_EOL;
         }
 
         // Handle numbers (Outputs `=> 7200,`)
         if (is_numeric($value)) {
-            return ' => ' . $value . ',' . PHP_EOL;
+            return " => {$value}," . PHP_EOL;
         }
 
         // Handle bools (Outputs `=> true,`)
         if (is_bool($value)) {
             $boolAsWord = $value ? 'true' : 'false';
 
-            return ' => ' . $boolAsWord . ',' . PHP_EOL;
+            return " => {$boolAsWord}," . PHP_EOL;
         }
 
         // Generate an indentation equal to 4 spaces per level of recursion
@@ -177,8 +178,7 @@ class Config
             }
             $result .= $additionalIndent . "'" . $key . "'" . self::recursivelyIdentAndFormat($value, $level + 1);
         }
-        $result .= $indent . '],' . PHP_EOL;
 
-        return $result;
+        return $result . ($indent . '],' . PHP_EOL);
     }
 }

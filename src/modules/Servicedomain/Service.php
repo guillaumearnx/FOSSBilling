@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -10,9 +12,19 @@
 
 namespace Box\Mod\Servicedomain;
 
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Finder\Finder;
+
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
     protected ?\Pimple\Container $di = null;
+    private readonly Filesystem $filesystem;
+
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+    }
 
     public function setDi(\Pimple\Container $di): void
     {
@@ -26,13 +38,15 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
     public function getCartProductTitle($product, array $data)
     {
-        if (isset($data['action']) && $data['action'] == 'register'
+        if (
+            isset($data['action']) && $data['action'] == 'register'
             && isset($data['register_tld']) && isset($data['register_sld'])
         ) {
             return __trans('Domain :domain registration', [':domain' => $data['register_sld'] . $data['register_tld']]);
         }
 
-        if (isset($data['action']) && $data['action'] == 'transfer'
+        if (
+            isset($data['action']) && $data['action'] == 'transfer'
             && isset($data['transfer_tld']) && isset($data['transfer_sld'])
         ) {
             return __trans('Domain :domain transfer', [':domain' => $data['transfer_sld'] . $data['transfer_tld']]);
@@ -56,9 +70,11 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         if ($action == 'owndomain') {
-            if (!isset($data['owndomain_sld'])) {
-                throw new \FOSSBilling\Exception('Order data must contain :field configuration field', [':field' => 'owndomain_sld']);
-            }
+            $required = [
+                'owndomain_tld' => 'Domain TLD is required.',
+                'owndomain_sld' => 'Domain name is required.',
+            ];
+            $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
             if (!$validator->isSldValid($data['owndomain_sld'])) {
                 $safe_dom = htmlspecialchars($data['owndomain_sld'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
@@ -66,29 +82,23 @@ class Service implements \FOSSBilling\InjectionAwareInterface
                 throw new \FOSSBilling\InformationException('Domain name :domain is invalid', [':domain' => $safe_dom]);
             }
 
-            $required = [
-                'owndomain_tld' => 'Domain TLD is invalid.',
-                'owndomain_sld' => 'Domain name is required.',
-            ];
-            $this->di['validator']->checkRequiredParamsForArray($required, $data);
+            if (!$validator->isTldValid($data['owndomain_tld'])) {
+                throw new \FOSSBilling\InformationException('TLD is invalid');
+            }
         }
 
         if ($action == 'transfer') {
-            if (!isset($data['transfer_sld'])) {
-                throw new \FOSSBilling\InformationException('Order data must contain :field configuration field', [':field' => 'transfer_sld']);
-            }
+            $required = [
+                'transfer_tld' => 'Transfer domain type (TLD) is required.',
+                'transfer_sld' => 'Transfer domain name (SLD) is required.',
+            ];
+            $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
             if (!$validator->isSldValid($data['transfer_sld'])) {
                 $safe_dom = htmlspecialchars($data['transfer_sld'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
                 throw new \FOSSBilling\InformationException('Domain name :domain is invalid', [':domain' => $safe_dom]);
             }
-
-            $required = [
-                'transfer_tld' => 'Transfer domain type (TLD) is required.',
-                'transfer_sld' => 'Transfer domain name (SLD) is required.',
-            ];
-            $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
             $tld = $this->tldFindOneByTld($data['transfer_tld']);
             if (!$tld instanceof \Model_Tld) {
@@ -97,7 +107,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
             $domain = $data['transfer_sld'] . $tld->tld;
             if (!$this->canBeTransferred($tld, $data['transfer_sld'])) {
-                throw new \FOSSBilling\InformationException(':domain can not be transferred!', [':domain' => $domain]);
+                throw new \FOSSBilling\InformationException(':domain cannot be transferred!', [':domain' => $domain]);
             }
 
             // return by reference
@@ -106,22 +116,18 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         if ($action == 'register') {
-            if (!isset($data['register_sld'])) {
-                throw new \FOSSBilling\InformationException('Order data must contain :field configuration field', [':field' => 'register_sld']);
-            }
-
-            if (!$validator->isSldValid($data['register_sld'])) {
-                $safe_dom = htmlspecialchars($data['register_sld'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-                throw new \FOSSBilling\InformationException('Domain name :domain is invalid', [':domain' => $safe_dom]);
-            }
-
             $required = [
                 'register_tld' => 'Domain registration tld parameter missing.',
                 'register_sld' => 'Domain registration sld parameter missing.',
                 'register_years' => 'Years parameter is missing for domain configuration.',
             ];
             $this->di['validator']->checkRequiredParamsForArray($required, $data);
+
+            if (!$validator->isSldValid($data['register_sld'])) {
+                $safe_dom = htmlspecialchars($data['register_sld'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                throw new \FOSSBilling\InformationException('Domain name :domain is invalid', [':domain' => $safe_dom]);
+            }
 
             $tld = $this->tldFindOneByTld($data['register_tld']);
             if (!$tld instanceof \Model_Tld) {
@@ -142,6 +148,15 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             $data['period'] = $years . 'Y';
             $data['quantity'] = $years;
         }
+    }
+
+    public function generateOrderTitle(array $config): ?string
+    {
+        return match ($config['action']) {
+            'transfer' => $config['transfer_sld'] . $config['transfer_tld'],
+            'register' => $config['register_sld'] . $config['register_tld'],
+            default => null,
+        };
     }
 
     /**
@@ -416,7 +431,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             'postcode' => 'Required field postcode is missing',
             'phone_cc' => 'Required field phone_cc is missing',
             'phone' => 'Required field phone is missing',
-            ];
+        ];
         $this->di['validator']->checkRequiredParamsForArray($required, $contact);
 
         $model->contact_first_name = $contact['first_name'];
@@ -449,9 +464,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     {
         // @adapterAction
         [$domain, $adapter] = $this->_getD($model);
-        $epp = $adapter->getEpp($domain);
 
-        return $epp;
+        return $adapter->getEpp($domain);
     }
 
     public function lock(\Model_ServiceDomain $model)
@@ -525,7 +539,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         if (!$model->allow_transfer) {
-            throw new \FOSSBilling\InformationException('Domain can not be transferred', null, 403);
+            throw new \FOSSBilling\InformationException('Domain cannot be transferred', null, 403);
         }
 
         // @adapterAction
@@ -553,7 +567,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         if (!$model->allow_register) {
-            throw new \FOSSBilling\InformationException('Domain can not be registered', null, 403);
+            throw new \FOSSBilling\InformationException('Domain cannot be registered', null, 403);
         }
 
         // @adapterAction
@@ -572,7 +586,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         // @todo
     }
 
-    public function toApiArray(\Model_ServiceDomain $model, $deep = false, $identity = null)
+    public function toApiArray(\Model_ServiceDomain $model, $deep = false, $identity = null): array
     {
         $data = [
             'domain' => $model->sld . $model->tld,
@@ -680,7 +694,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $contact
             ->setEmail($email)
             ->setUsername($email)
-            ->setPassword($this->di['tools']->generatePassword(10, 3))
+            ->setPassword($this->di['tools']->generatePassword(10))
             ->setFirstname($first_name)
             ->setLastname($last_name)
             ->setCity($city)
@@ -765,7 +779,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $model->min_years = isset($data['min_years']) ? (int) $data['min_years'] : 1;
         $model->allow_register = isset($data['allow_register']) ? (bool) $data['allow_register'] : true;
         $model->allow_transfer = isset($data['allow_transfer']) ? (bool) $data['allow_transfer'] : true;
-        $model->active = isset($data['active']) ? (bool) $data['active'] : false;
+        $model->active = isset($data['active']) && (bool) $data['active'];
         $model->updated_at = date('Y-m-d H:i:s');
         $model->created_at = date('Y-m-d H:i:s');
 
@@ -900,16 +914,21 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return [$query, $bindings];
     }
 
-    public function registrarGetAvailable()
+    /**
+     * @return mixed[][]|string[]
+     */
+    public function registrarGetAvailable(): array
     {
         $query = "SELECT 'registrar', 'name' FROM tld_registrar GROUP BY registrar";
 
         $exists = $this->di['db']->getAssoc($query);
 
-        $pattern = PATH_LIBRARY . '/Registrar/Adapter/*.php';
         $adapters = [];
-        foreach (glob($pattern) as $path) {
-            $adapter = pathinfo($path, PATHINFO_FILENAME);
+
+        $finder = new Finder();
+        $finder->files()->in(Path::join(PATH_LIBRARY, 'Registrar', 'Adapter'))->name('*.php');
+        foreach ($finder as $file) {
+            $adapter = $file->getFilenameWithoutExtension();
             if (!array_key_exists($adapter, $exists)) {
                 $adapters[] = $adapter;
             }
@@ -930,9 +949,9 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return $this->di['db']->findOne('TldRegistrar', 'config IS NOT NULL LIMIT 1');
     }
 
-    public function registrarGetConfiguration(\Model_TldRegistrar $model)
+    public function registrarGetConfiguration(\Model_TldRegistrar $model): array
     {
-        return $this->di['tools']->decodeJ($model->config);
+        return json_decode($model->config ?? '', true) ?? [];
     }
 
     public function registrarGetRegistrarAdapterConfig(\Model_TldRegistrar $model)
@@ -944,7 +963,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
     private function registrarGetRegistrarAdapterClassName(\Model_TldRegistrar $model)
     {
-        if (!file_exists(PATH_LIBRARY . '/Registrar/Adapter/' . $model->registrar . '.php')) {
+        if (!$this->filesystem->exists(Path::join(PATH_LIBRARY, 'Registrar', 'Adapter', "{$model->registrar}.php"))) {
             throw new \FOSSBilling\Exception('Domain registrar :adapter was not found', [':adapter' => $model->registrar]);
         }
 
@@ -956,7 +975,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return $class;
     }
 
-    public function registrarGetRegistrarAdapter(\Model_TldRegistrar $r, \Model_ClientOrder $order = null)
+    public function registrarGetRegistrarAdapter(\Model_TldRegistrar $r, ?\Model_ClientOrder $order = null)
     {
         $config = $this->registrarGetConfiguration($r);
         $class = $this->registrarGetRegistrarAdapterClassName($r);

@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -32,7 +33,6 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
                 'location' => 'system',
                 'label' => __trans('System'),
                 'class' => 'settings',
-                'sprite_class' => 'dark-sprite-icon sprite-cog3',
             ],
             'subpages' => [
                 [
@@ -44,7 +44,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
                 ],
                 [
                     'location' => 'system',
-                    'label' => __trans('Update'),
+                    'label' => __trans('Update FOSSBilling'),
                     'index' => 100,
                     'uri' => $this->di['url']->adminLink('system/update'),
                     'class' => '',

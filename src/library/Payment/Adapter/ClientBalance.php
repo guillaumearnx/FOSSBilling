@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -56,26 +57,24 @@ class Payment_Adapter_ClientBalance implements FOSSBilling\InjectionAwareInterfa
         $invoiceModel = $this->di['db']->load('Invoice', $invoice_id);
 
         if (!$this->enoughInBalanceToCoverInvoice($invoiceModel)) {
-            return __trans('Not enough in balance');
+            return __trans('Your account balance is insufficient to cover this invoice.');
         }
 
         $invoiceService = $this->di['mod_service']('Invoice');
         if ($invoiceService->isInvoiceTypeDeposit($invoiceModel)) {
-            return __trans('It is forbidden to pay a deposit invoice with this gateway');
+            return __trans('You may not pay a deposit invoice with this payment gateway.');
         }
 
         $ipnUrl = $this->getServiceUrl($invoice_id);
         $invoiceUrl = $this->di['tools']->url('invoice/' . $invoiceModel->hash);
 
-        $out = "<script type='text/javascript'>
+        return "<script type='text/javascript'>
                 $(document).ready(function(){
                     bb.post('$ipnUrl', null, function(result){
                         window.location.href = '$invoiceUrl';
                     });
                 });
                 </script>";
-
-        return $out;
     }
 
     public function processTransaction($api_admin, $id, $data, $gateway_id)
@@ -86,12 +85,17 @@ class Payment_Adapter_ClientBalance implements FOSSBilling\InjectionAwareInterfa
 
         $tx = $this->di['db']->load('Transaction', $id);
 
-        $invoice_id = $data['get']['bb_invoice_id'] ?? 0;
+        if ($tx->invoice_id) {
+            $invoice_id = $tx->invoice_id;
+        } else {
+            $invoice_id = $data['get']['invoice_id'] ?? 0;
+        }
+
         $invoiceModel = $this->di['db']->load('Invoice', $invoice_id);
 
         $invoiceService = $this->di['mod_service']('Invoice');
         if ($invoiceService->isInvoiceTypeDeposit($invoiceModel)) {
-            throw new Payment_Exception('It is forbidden to pay a deposit invoice with this gateway', [], 303);
+            throw new Payment_Exception('You may not pay a deposit invoice with this payment gateway.', [], 303);
         }
 
         if ($invoice_id) {
@@ -100,7 +104,7 @@ class Payment_Adapter_ClientBalance implements FOSSBilling\InjectionAwareInterfa
         $invoiceService->doBatchPayWithCredits(['client_id' => $invoiceModel->client_id]);
 
         $tx->error = '';
-        $tx->error_code = '';
+        $tx->error_code = null;
         $tx->status = 'processed';
         $tx->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($tx);
@@ -126,7 +130,7 @@ class Payment_Adapter_ClientBalance implements FOSSBilling\InjectionAwareInterfa
         $invoiceModel = $this->di['db']->load('Invoice', $invoice_id);
         $invoiceService = $this->di['mod_service']('Invoice');
         if ($invoiceService->isInvoiceTypeDeposit($invoiceModel)) {
-            throw new Payment_Exception('It is forbidden to pay a deposit invoice with this gateway', null, 302);
+            throw new Payment_Exception('You may not pay a deposit invoice with this payment gateway.', null, 302);
         }
 
         $gatewayService = $this->di['mod_service']('Invoice', 'PayGateway');

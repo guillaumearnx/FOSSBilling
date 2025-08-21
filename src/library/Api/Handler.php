@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -16,9 +17,11 @@ final class Api_Handler implements InjectionAwareInterface
     protected $ip;
     protected ?Pimple\Container $di = null;
 
-    private bool $_enable_cache = false;
-    private array $_cache = [];
-    private bool $_acl_exception = false;
+    /**
+     * @var bool When true, ACL permission denials are reported as exceptions.
+     *           Defaults to true.
+     */
+    private bool $_acl_exception = true;
 
     public function __construct(protected $identity)
     {
@@ -55,12 +58,6 @@ final class Api_Handler implements InjectionAwareInterface
             throw new FOSSBilling\Exception('Invalid module name', null, 714);
         }
 
-        // cache
-        $cache_key = md5($this->type . $mod . $method_name . serialize($arguments));
-        if ($this->_enable_cache && isset($this->_cache[$cache_key])) {
-            return $this->_cache[$cache_key];
-        }
-
         $service = $this->di['mod']('extension')->getService();
 
         if (!$service->isExtensionActive('mod', $mod)) {
@@ -72,7 +69,7 @@ final class Api_Handler implements InjectionAwareInterface
             $staff_service = $this->di['mod_service']('Staff');
             if (!$staff_service->hasPermission($this->identity, $mod)) {
                 if ($this->_acl_exception) {
-                    throw new FOSSBilling\Exception('You do not have access to :mod module', [':mod' => $mod], 725);
+                    throw new FOSSBilling\Exception('You do not have access to the :mod module', [':mod' => $mod], 725);
                 } else {
                     if (DEBUG) {
                         error_log('You do not have access to ' . $mod . ' module');
@@ -88,7 +85,7 @@ final class Api_Handler implements InjectionAwareInterface
         $api = new $api_class();
 
         if (!$api instanceof Api_Abstract) {
-            throw new FOSSBilling\Exception('Api class must be instance of Api_Abstract', null, 730);
+            throw new FOSSBilling\Exception('Api class must be an instance of Api_Abstract', null, 730);
         }
 
         $bb_mod = $this->di['mod']($mod);
@@ -96,7 +93,7 @@ final class Api_Handler implements InjectionAwareInterface
         $api->setDi($this->di);
         $api->setMod($bb_mod);
         $api->setIdentity($this->identity);
-        $api->setIp($this->di['request']->getClientAddress());
+        $api->setIp($this->di['request']->getClientIp());
         if ($bb_mod->hasService()) {
             $api->setService($this->di['mod_service']($mod));
         }
@@ -107,11 +104,7 @@ final class Api_Handler implements InjectionAwareInterface
                 throw new FOSSBilling\Exception(':type API call :method does not exist in module :module', [':type' => ucfirst($this->type), ':method' => $method_name, ':module' => $mod], 740);
             }
         }
-        $res = $api->{$method_name}($arguments);
-        if ($this->_enable_cache) {
-            $this->_cache[$cache_key] = $res;
-        }
 
-        return $res;
+        return $api->{$method_name}($arguments);
     }
 }

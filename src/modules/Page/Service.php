@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -11,6 +13,8 @@
 namespace Box\Mod\Page;
 
 use FOSSBilling\InjectionAwareInterface;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\Finder\Finder;
 
 class Service implements InjectionAwareInterface
 {
@@ -34,21 +38,25 @@ class Service implements InjectionAwareInterface
         ];
     }
 
-    public function getPairs()
+    /**
+     * @return string[]
+     */
+    public function getPairs(): array
     {
         $themeService = $this->di['mod_service']('theme');
-        $code = $themeService->getCurrentClientAreaThemeCode();
+        $themeCode = $themeService->getCurrentClientAreaThemeCode();
         $paths = [
-            PATH_THEMES . DIRECTORY_SEPARATOR . $code . DIRECTORY_SEPARATOR . 'html' . DIRECTORY_SEPARATOR,
-            PATH_MODS . DIRECTORY_SEPARATOR . 'mod_page' . DIRECTORY_SEPARATOR . 'html_client' . DIRECTORY_SEPARATOR,
+            Path::join(PATH_THEMES, (string) $themeCode, 'html'),
+            Path::join(PATH_MODS, 'Page', 'html_client'),
         ];
 
+        $finder = new Finder();
+        $finder->files()->in($paths)->name('mod_page_*.html.twig');
+
         $list = [];
-        foreach ($paths as $path) {
-            foreach (glob($path . 'mod_page_*.html.twig') as $file) {
-                $file = str_replace('mod_page_', '', pathinfo($file, PATHINFO_FILENAME));
-                $list[$file] = ucwords(strtr($file, ['-' => ' ', '_' => ' ']));
-            }
+        foreach ($finder as $file) {
+            $fileName = $file->getBasename('.html.twig');
+            $list[$fileName] = ucwords(strtr($fileName, ['-' => ' ', '_' => ' ']));
         }
 
         return $list;

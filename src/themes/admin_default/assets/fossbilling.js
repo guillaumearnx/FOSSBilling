@@ -6,16 +6,17 @@ import $ from 'jquery';
 import './js/ui/modals';
 import { coloris, init } from '@melloware/coloris';
 import ClipboardJS from "clipboard";
-import '@tabler/core/src/js/tabler';
+import * as tabler from '@tabler/core/js/tabler.js';
 import './js/tomselect'
 import './js/datepicker'
 import ApexCharts from 'apexcharts';
 import './js/ui/theme_settings';
 import './js/fossbilling';
-import 'sortable-tablesort/sortable.min.js';
+import 'sortable-tablesort/dist/sortable.min.js';
 
 globalThis.ApexCharts = ApexCharts;
 globalThis.$ = globalThis.jQuery = $;
+globalThis.bootstrap = tabler.bootstrap;
 
 init();
 coloris({
@@ -29,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     element.addEventListener('click', event => {
       event.preventDefault();
       localStorage.setItem('theme', element.getAttribute('href').split('=')[1]);
-      document.body.setAttribute("data-bs-theme", localStorage.getItem('theme'))
+      document.documentElement.setAttribute("data-bs-theme", localStorage.getItem('theme'))
     });
   });
 

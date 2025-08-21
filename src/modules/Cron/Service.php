@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -13,6 +14,7 @@ namespace Box\Mod\Cron;
 
 use FOSSBilling\Config;
 use FOSSBilling\Environment;
+use Symfony\Component\Filesystem\Path;
 
 class Service
 {
@@ -32,25 +34,21 @@ class Service
     {
         $service = $this->di['mod_service']('system');
 
-        $result = [
-            'cron_path' => PATH_ROOT . DIRECTORY_SEPARATOR . 'cron.php',
+        return [
+            'cron_path' => Path::join(PATH_ROOT, 'cron.php'),
             'last_cron_exec' => $service->getParamValue('last_cron_exec'),
         ];
-
-        return $result;
     }
 
     /**
-     * @param null $interval - parameter from CLI, pass to filter crons to run
-     *
      * @return bool
      *
-     * @todo finish fixing, time to sleep
+     * @todo finish fixing, time to sleep (note: idk what exactly this is referring to. It predates FOSSBilling and is from BoxBilling well before we touched this code)
      */
-    public function runCrons($interval = null)
+    public function runCrons()
     {
         $api = $this->di['api_system'];
-        $this->di['logger']->setChannel('cron')->info('Started executing cron jobs');
+        $this->di['logger']->setChannel('cron')->info('Started executing cron jobs.');
 
         // @core tasks
         $this->_exec($api, 'hook_batch_connect');
@@ -74,10 +72,10 @@ class Service
 
         // Purge old sessions from the DB
         $count = $this->clearOldSessions() ?? 0;
-        $this->di['logger']->setChannel('cron')->info("Cleared $count outdated sessions from the database");
+        $this->di['logger']->setChannel('cron')->info("Cleared {$count} outdated sessions from the database.");
 
         $this->di['events_manager']->fire(['event' => 'onAfterAdminCronRun']);
-        $this->di['logger']->setChannel('cron')->info('Finished executing cron jobs');
+        $this->di['logger']->setChannel('cron')->info('Finished executing cron jobs.');
 
         return true;
     }
@@ -90,10 +88,10 @@ class Service
         try {
             $api->{$method}($params);
         } catch (\Exception $e) {
-            throw new \Exception($e);
+            throw new \Exception($e->getMessage());
         } finally {
             if (Environment::isCLI()) {
-                echo "\e[32mSuccessfully ran " . $method . '(' . $params . ')' . ".\e[0m\n";
+                echo "\e[32mSuccessfully ran {$method}({$params}).\e[0m\n";
             }
         }
     }
@@ -104,9 +102,8 @@ class Service
     public function getLastExecutionTime()
     {
         $service = $this->di['mod_service']('system');
-        $last_exec = $service->getParamValue('last_cron_exec');
 
-        return $last_exec;
+        return $service->getParamValue('last_cron_exec');
     }
 
     public function isLate()

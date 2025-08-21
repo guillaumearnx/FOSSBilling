@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -24,8 +25,8 @@ class Admin extends \Api_Abstract
     public function get_list($data)
     {
         [$query, $params] = $this->getService()->getSearchQuery();
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($query, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($query, $params, $per_page);
         foreach ($pager['list'] as $key => $item) {
             $currency = $this->di['db']->getExistingModelById('Currency', $item['id'], 'Currency not found');
             $pager['list'][$key] = $this->getService()->toApiArray($currency);
@@ -111,7 +112,7 @@ class Admin extends \Api_Abstract
         }
 
         $title = $data['title'] ?? null;
-        $conversionRate = $data['conversion_rate'] ?? 1;
+        $conversionRate = $data['conversion_rate'] ?? null;
 
         return $service->createCurrency($data['code'] ?? null, $data['format'] ?? null, $title, $conversionRate);
     }
@@ -143,49 +144,9 @@ class Admin extends \Api_Abstract
     }
 
     /**
-     * Gets the API key for currencylayer.
-     *
-     * @since 4.22.0
-     *
-     * @return string
-     */
-    public function get_key($data)
-    {
-        return $this->getService()->getKey();
-    }
-
-    /**
-     * Updates the API key for currencylayer.
-     *
-     * @since 4.22.0
-     *
-     * @return bool
-     */
-    public function update_rate_settings($data)
-    {
-        $this->getService()->updateKey($data['currencylayer_key'] ?? null);
-
-        if ($data['crons_enabled'] ?? null == '1') {
-            $set = '1';
-        } else {
-            $set = '0';
-        }
-
-        $this->getService()->setCron($set);
-
-        return true;
-    }
-
-    /**
      * See if CRON jobs are enabled for currency rates.
-     *
-     * @todo why does this even return a string instead of a boolean?
-     *
-     * @since 4.22.0
-     *
-     * @return string (0/1)
      */
-    public function is_cron_enabled($data)
+    public function is_cron_enabled($data): bool
     {
         return $this->getService()->isCronEnabled();
     }
@@ -201,7 +162,7 @@ class Admin extends \Api_Abstract
     }
 
     /**
-     * Remove currency. Default currency can not be removed.
+     * Remove currency. Default currency cannot be removed.
      *
      * @return bool
      *

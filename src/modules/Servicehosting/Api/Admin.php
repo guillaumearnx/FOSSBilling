@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -137,23 +138,59 @@ class Admin extends \Api_Abstract
     }
 
     /**
-     * Get paginated list of servers.
+     * Get a paginated list of servers.
      *
      * @return array
      */
     public function server_get_list($data)
     {
-        $servers = $this->di['db']->find('ServiceHostingServer', 'ORDER BY id ASC');
-        $serversArr = [];
-        foreach ($servers as $server) {
-            $serversArr[] = $this->getService()->toHostingServerApiArray($server, false, $this->getIdentity());
+        [$sql, $params] = $this->getService()->getServersSearchQuery($data);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $result = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
+
+        foreach ($result['list'] as $key => $server) {
+            $bean = $this->di['db']->dispense('ServiceHostingServer')->unbox();
+            $bean->import($server);
+            $model = $bean->box();
+
+            $result['list'][$key] = $this->getService()->toHostingServerApiArray($model, false, $this->getIdentity());
         }
 
-        [$sql, $params] = $this->getService()->getServersSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $result = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        return $result;
+    }
 
-        $result['list'] = $serversArr;
+    /**
+     * Get a paginated list of hosting accounts, along with the "order" and "client" information.
+     *
+     * @param $data array Accepts the optional "server_id" property
+     *
+     * @return array
+     */
+    public function account_get_list($data)
+    {
+        [$sql, $params] = $this->getService()->getAccountsSearchQuery($data);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $result = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
+        $orderService = $this->di['mod_service']('order');
+
+        foreach ($result['list'] as $key => $account) {
+            $bean = $this->di['db']->dispense('ServiceHosting')->unbox();
+            $bean->import($account);
+            $model = $bean->box();
+
+            $order = $this->di['db']->findOne('ClientOrder', 'service_id = :service_id', [':service_id' => $model->id]);
+
+            $result['list'][$key] = $this->getService()->toHostingAccountApiArray($model, true, $this->getIdentity());
+
+            if ($order) {
+                $result['list'][$key]['order'] = $orderService->toApiArray($order);
+                $result['list'][$key]['client'] = $result['list'][$key]['order']['client'];
+
+                unset($result['list'][$key]['order']['client']);
+            } else {
+                $result['list'][$key]['order'] = null;
+            }
+        }
 
         return $result;
     }
@@ -314,8 +351,8 @@ class Admin extends \Api_Abstract
     public function hp_get_list($data)
     {
         [$sql, $params] = $this->getService()->getHpSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
         foreach ($pager['list'] as $key => $item) {
             $model = $this->di['db']->getExistingModelById('ServiceHostingHp', $item['id'], 'Post not found');
             $pager['list'][$key] = $this->getService()->toHostingHpApiArray($model, false, $this->getIdentity());

@@ -2,7 +2,7 @@
 
 {% import 'macro_functions.html.twig' as mf %}
 
-{% block meta_title %}Public Tickets{% endblock %}
+{% block meta_title %}{{ 'Public Tickets'|trans }}{% endblock %}
 
 {% block breadcrumbs %}
     <ul class="breadcrumb">
@@ -33,7 +33,7 @@
                             <span class="bg-danger text-white avatar">{{ statuses.open }}</span>
                         </div>
                         <div class="col">
-                            <div class="font-weight-medium">{{ 'Tickets waiting for staff reply'|trans }}</div>
+                            <div class="font-weight-medium">{{ 'Client reply'|trans }}</div>
                         </div>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                             <span class="bg-warning text-white avatar">{{ statuses.on_hold }}</span>
                         </div>
                         <div class="col">
-                            <div class="font-weight-medium">{{ 'Tickets waiting for client reply'|trans }}</div>
+                            <div class="font-weight-medium">{{ 'Staff reply'|trans }}</div>
                         </div>
                     </div>
                 </div>
@@ -61,7 +61,7 @@
                             <span class="bg-secondary text-white avatar">{{ statuses.closed }}</span>
                         </div>
                         <div class="col">
-                            <div class="font-weight-medium">{{ 'Solved tickets'|trans }}</div>
+                            <div class="font-weight-medium">{{ 'Solved'|trans }}</div>
                         </div>
                     </div>
                 </div>
@@ -88,7 +88,7 @@
             <h3>{{ 'Public Tickets'|trans }}</h3>
         </div>
 
-        {% include 'partial_search.html.twig' %}
+        {{ include('partial_search.html.twig') }}
         <table class="table card-table table-vcenter table-striped text-nowrap sortable">
             <thead>
                 <tr>
@@ -144,7 +144,7 @@
     </div>
 
     <div class="card-footer d-flex align-items-center justify-content-between">
-        {% include 'partial_batch_delete.html.twig' with { 'action': 'admin/support/batch_delete_public' } %}
-        {% include 'partial_pagination.html.twig' with { 'list': tickets, 'url': 'support/public-tickets' } %}
+        {{ include('partial_batch_delete.html.twig', { 'action': 'admin/support/batch_delete_public' }) }}
+        {{ include('partial_pagination.html.twig', { 'list': tickets, 'url': 'support/public-tickets' }) }}
     </div>
 {% endblock %}

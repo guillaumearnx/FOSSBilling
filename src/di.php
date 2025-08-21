@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -18,8 +18,8 @@ use Lcharette\WebpackEncoreTwig\TagRenderer;
 use Lcharette\WebpackEncoreTwig\VersionedAssetsTwigExtension;
 use League\CommonMark\Extension\DefaultAttributes\DefaultAttributesExtension;
 use RedBeanPHP\Facade;
-use Symfony\Bridge\Twig\Extension\TranslationExtension;
 use Symfony\Component\Cache\Adapter\FilesystemAdapter;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\WebpackEncoreBundle\Asset\EntrypointLookup;
 use Twig\Extension\CoreExtension;
 use Twig\Extension\DebugExtension;
@@ -27,17 +27,6 @@ use Twig\Extension\StringLoaderExtension;
 use Twig\Extra\Intl\IntlExtension;
 
 $di = new Pimple\Container();
-
-/*
- * Returns the current FOSSBilling config.
- *
- * @param void
- *
- * @deprecated
- *
- * @return array
- */
-$di['config'] = fn () => Config::getConfig();
 
 /*
  * Create a new logger instance and configures it based on the settings in the configuration file.
@@ -153,10 +142,10 @@ $di['db'] = function () use ($di) {
  *
  * @param void
  *
- * @return Box_Pagination
+ * @return FOSSBilling\Pagination
  */
 $di['pager'] = function () use ($di) {
-    $service = new Box_Pagination();
+    $service = new FOSSBilling\Pagination();
     $service->setDi($di);
 
     return $service;
@@ -236,34 +225,32 @@ $di['session'] = function () use ($di) {
 };
 
 /*
+ * Creates a new request object based on the current request.
  *
  * @param void
  *
- * @return \FOSSBilling\Request
+ * @link https://symfony.com/doc/current/components/http_foundation.html
+ *
+ * @return Symfony\Component\HttpFoundation\Request
  */
-$di['request'] = function () use ($di) {
-    $service = new FOSSBilling\Request();
-    $service->setDi($di);
-
-    return $service;
-};
+$di['request'] = fn (): Request => Request::createFromGlobals();
 
 /*
  * @param void
  *
- * @return \Symfony\Component\Cache\Adapter\FilesystemAdapter
+ * @link https://symfony.com/doc/current/components/cache/adapters/filesystem_adapter.html
+ *
+ * @return FilesystemAdapter
  */
-$di['cache'] = fn () =>
-// Reference: https://symfony.com/doc/current/components/cache/adapters/filesystem_adapter.html
-new FilesystemAdapter('sf_cache', 24 * 60 * 60, PATH_CACHE);
+$di['cache'] = fn (): FilesystemAdapter => new FilesystemAdapter('sf_cache', 24 * 60 * 60, PATH_CACHE);
 
 /*
  *
  * @param void
  *
- * @return \Box_Authorization
+ * @return Box_Authorization
  */
-$di['auth'] = fn () => new Box_Authorization($di);
+$di['auth'] = fn (): Box_Authorization => new Box_Authorization($di);
 
 /*
  * Creates a new Twig environment that's configured for FOSSBilling.
@@ -304,19 +291,10 @@ $di['twig'] = $di->factory(function () use ($di) {
     // $twig->addExtension(new OptimizerExtension());
     $twig->addExtension(new StringLoaderExtension());
     $twig->addExtension(new DebugExtension());
-    $twig->addExtension(new TranslationExtension());
     $twig->addExtension($box_extensions);
     $twig->getExtension(CoreExtension::class)->setTimezone($timezone);
 
-    try {
-        $dateFormatter = new IntlDateFormatter($locale, constant("\IntlDateFormatter::$date_format"), constant("\IntlDateFormatter::$time_format"), $timezone, null, $datetime_pattern);
-    } catch (Symfony\Polyfill\Intl\Icu\Exception\MethodArgumentValueNotImplementedException) {
-        if (Config::getProperty('i18n.locale', 'en_US') == 'en_US') {
-            $dateFormatter = new IntlDateFormatter('en', constant("\IntlDateFormatter::$date_format"), constant("\IntlDateFormatter::$time_format"), $timezone, null, $datetime_pattern);
-        } else {
-            throw new FOSSBilling\InformationException('It appears you are trying to use FOSSBilling without the php intl extension enabled. FOSSBilling includes a polyfill for the intl extension, however it does not support :locale. Please enable the intl extension.', [':locale' => Config::getProperty('i18n.locale')]);
-        }
-    }
+    $dateFormatter = new IntlDateFormatter($locale, constant("\IntlDateFormatter::$date_format"), constant("\IntlDateFormatter::$time_format"), $timezone, null, $datetime_pattern);
 
     $twig->addExtension(new IntlExtension($dateFormatter));
 
@@ -407,7 +385,7 @@ $di['is_admin_logged'] = function () use ($di) {
 
         $di['set_return_uri'];
 
-        header(sprintf('Location: %s', $di['url']->adminLink('staff/login')));
+        header("Location: {$di['url']->adminLink('staff/login')}");
         exit;
     }
 
@@ -484,7 +462,7 @@ $di['loggedin_admin'] = function () use ($di) {
     }
 };
 
-$di['set_return_uri'] = function () use ($di) {
+$di['set_return_uri'] = function () use ($di): void {
     $url = $_GET['_url'] ?? $_SERVER['PATH_INFO'] ?? '';
     unset($_GET['_url']);
 
@@ -524,7 +502,7 @@ $di['api'] = $di->protect(function ($role) use ($di) {
         // If it's an API request, only allow requests to the "client" and "profile" modules so they can change their email address or resend the confirmation email.
         if (strncasecmp($url, '/api/', strlen('/api/')) === 0) {
             if (strncasecmp($url, '/api/client/client/', strlen('/api/client/client/')) !== 0 && strncasecmp($url, '/api/client/profile/', strlen('/api/client/profile/')) !== 0) {
-                throw new Exception('Please check your mailbox and confirm email address.');
+                throw new Exception('Please check your mailbox and confirm your email address.');
             }
         } elseif (strncasecmp($url, '/client', strlen('/client')) !== 0) {
             // If they aren't attempting to access their profile, redirect them to it.
@@ -609,19 +587,6 @@ $di['central_alerts'] = function () use ($di) {
  *
  * @param void
  *
- * @return \FOSSBilling\CentralAlerts
- */
-$di['central_alerts'] = function () use ($di) {
-    $centralalerts = new FOSSBilling\CentralAlerts();
-    $centralalerts->setDi($di);
-
-    return $centralalerts;
-};
-
-/*
- *
- * @param void
- *
  * @return \FOSSBilling\ExtensionManager
  */
 $di['extension_manager'] = function () use ($di) {
@@ -645,27 +610,6 @@ $di['updater'] = function () use ($di) {
 };
 
 /*
- * @param void
- *
- * @return Server_Package
- */
-$di['server_package'] = fn () => new Server_Package();
-
-/*
- * @param void
- *
- * @return Server_Client
- */
-$di['server_client'] = fn () => new Server_Client();
-
-/*
- * @param void
- *
- * @return Server_Account
- */
-$di['server_account'] = fn () => new Server_Account();
-
-/*
  * Creates a new server manager object and returns it.
  *
  * @param string $manager The name of the server manager to create.
@@ -683,24 +627,13 @@ $di['server_manager'] = $di->protect(function ($manager, $config) use ($di) {
 });
 
 /*
- * @param void
- *
- * @return \FOSSBilling\Requirements
- */
-$di['requirements'] = function () {
-    $r = new FOSSBilling\Requirements();
-
-    return $r;
-};
-
-/*
  * Creates a new Box_Period object using the provided period code and returns it.
  *
  * @param string $code The two character period code to create the period object with.
  *
  * @return \Box_Period The new period object that was just created.
  */
-$di['period'] = $di->protect(fn ($code) => new Box_Period($code));
+$di['period'] = $di->protect(fn ($code): Box_Period => new Box_Period($code));
 
 /*
  * Gets the current client area theme.
@@ -769,16 +702,16 @@ $di['license_server'] = function () use ($di) {
 /*
  * @param void
  *
- * @return \GeoIp2\Database\Reader
+ * @return \FOSSBilling\GeoIP\Reader
  */
-$di['geoip'] = fn () => new GeoIp2\Database\Reader(PATH_LIBRARY . '/GeoLite2-Country.mmdb');
+$di['geoip'] = fn (): FOSSBilling\GeoIP\Reader => new FOSSBilling\GeoIP\Reader();
 
 /*
  * @param void
  *
- * @return \Box_Password
+ * @return \FOSSBilling\PasswordManager
  */
-$di['password'] = fn () => new Box_Password();
+$di['password'] = fn (): FOSSBilling\PasswordManager => new FOSSBilling\PasswordManager();
 
 /*
  * Creates a new Box_Translate object and sets the specified text domain, locale, and other options.
@@ -787,7 +720,7 @@ $di['password'] = fn () => new Box_Password();
  *
  * @return \Box_Translate The new translation object that was just created.
  */
-$di['translate'] = $di->protect(function ($textDomain = '') use ($di) {
+$di['translate'] = $di->protect(function ($textDomain = '') {
     $tr = new Box_Translate();
 
     if (!empty($textDomain)) {
@@ -796,7 +729,6 @@ $di['translate'] = $di->protect(function ($textDomain = '') use ($di) {
 
     $locale = FOSSBilling\i18n::getActiveLocale();
 
-    $tr->setDi($di);
     $tr->setLocale($locale);
     $tr->setup();
 
@@ -812,7 +744,7 @@ $di['translate'] = $di->protect(function ($textDomain = '') use ($di) {
  * @param int $limit Optional limit of the number of rows to export from the table
  * @return void
  */
-$di['table_export_csv'] = $di->protect(function (string $table, string $outputName = 'export.csv', array $headers = [], int $limit = 0) use ($di) {
+$di['table_export_csv'] = $di->protect(function (string $table, string $outputName = 'export.csv', array $headers = [], int $limit = 0) use ($di): void {
     if ($limit > 0) {
         $beans = $di['db']->findAll($table, 'LIMIT :limit', [':limit' => $limit]);
     } else {
@@ -823,7 +755,7 @@ $di['table_export_csv'] = $di->protect(function (string $table, string $outputNa
 
     // If we've been provided a list of headers, use that. Otherwise, pull the keys from the rows and use that for the CSV header
     if ($headers) {
-        $rows = array_map(fn ($row) => array_intersect_key($row, array_flip($headers)), $rows);
+        $rows = array_map(fn ($row): array => array_intersect_key($row, array_flip($headers)), $rows);
     } else {
         $headers = array_keys(reset($rows));
     }
@@ -833,7 +765,7 @@ $di['table_export_csv'] = $di->protect(function (string $table, string $outputNa
     $csv->insertOne($headers);
     $csv->insertAll($rows);
 
-    $csv->output($outputName);
+    $csv->download($outputName);
 
     // Prevent further output from being added to the end of the CSV
     exit;
@@ -853,10 +785,10 @@ $di['parse_markdown'] = $di->protect(function (?string $content, bool $addAttrib
     // If we are defining the default attributes, build the list and add them to the config
     if ($addAttributes) {
         $attributes = $di['mod_service']('theme')->getDefaultMarkdownAttributes();
-        foreach ($attributes as $class => $attributes) {
+        foreach ($attributes as $class => $classAttributes) {
             $reflectionClass = new ReflectionClass($class);
             $fqcn = $reflectionClass->getName();
-            $defaultAttributes[$fqcn] = $attributes;
+            $defaultAttributes[$fqcn] = $classAttributes;
         }
     }
 

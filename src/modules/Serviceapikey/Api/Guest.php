@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -24,7 +25,7 @@ class Guest extends \Api_Abstract
     }
 
     /**
-     * Gets the information tied to an API key such as it's validity and any custom parameters tied to it.
+     * Gets the information tied to an API key such as its validity and any custom parameters tied to it.
      *
      * @param array $data
      *                    - 'key' What API key to check & get custom parameters for

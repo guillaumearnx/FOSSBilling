@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -37,9 +38,8 @@ class Admin extends \Api_Abstract
         }
 
         $service = $this->getService();
-        $formId = $service->addNewForm($data);
 
-        return $formId;
+        return $service->addNewForm($data);
     }
 
     /**
@@ -51,7 +51,7 @@ class Admin extends \Api_Abstract
      * @optional bool $hide_label - Option either hide label of field or not
      * @optional string $description - Description of a field
      * @optional mixed $default_value - Default value of field. If field is checkbox or radio this variable must be array, otherwise it is string
-     * @optional bool $required - Option wither field need to have "required" attribute (Not applicable for checkboxes)
+     * @optional bool $required - Option whether field needs to have "required" attribute (Not applicable for checkboxes)
      * @optional bool $hidden - Option either field should be hidden
      * @optional bool $readonly - Option either field needs to be readonly
      * @optional string $prefix - Prefix for "text" type fields
@@ -80,13 +80,11 @@ class Admin extends \Api_Abstract
             throw new \FOSSBilling\InformationException('Form id was not passed', null, 9846);
         }
 
-        $fieldId = $service->addNewField($data);
-
-        return $fieldId;
+        return $service->addNewField($data);
     }
 
     /**
-     * Get form data by it's id.
+     * Get form data by its id.
      *
      * @return array
      *
@@ -119,9 +117,8 @@ class Admin extends \Api_Abstract
         $this->di['validator']->checkRequiredParamsForArray($required, $data, null, 1822);
 
         $service = $this->getService();
-        $fields = $service->getFormFields($data['form_id']);
 
-        return $fields;
+        return $service->getFormFields($data['form_id']);
     }
 
     /**
@@ -139,9 +136,8 @@ class Admin extends \Api_Abstract
         $this->di['validator']->checkRequiredParamsForArray($required, $data, null, 3547);
 
         $service = $this->getService();
-        $field = $service->getField($data['id']);
 
-        return $field;
+        return $service->getField($data['id']);
     }
 
     /**
@@ -154,13 +150,12 @@ class Admin extends \Api_Abstract
     public function get_forms()
     {
         $service = $this->getService();
-        $forms = $service->getForms();
 
-        return $forms;
+        return $service->getForms();
     }
 
     /**
-     * Delete form and it's form fields.
+     * Delete form and its form fields.
      *
      * @return bool
      *
@@ -237,9 +232,7 @@ class Admin extends \Api_Abstract
             throw new \FOSSBilling\InformationException('This input type must have unique values', null, 3658);
         }
 
-        $fieldId = $service->updateField($data);
-
-        return $fieldId;
+        return $service->updateField($data);
     }
 
     /**
@@ -269,9 +262,8 @@ class Admin extends \Api_Abstract
         }
 
         $service = $this->getService();
-        $new_form_id = $service->duplicateForm($data);
 
-        return $new_form_id;
+        return $service->duplicateForm($data);
     }
 
     /**

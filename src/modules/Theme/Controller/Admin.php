@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -43,7 +45,7 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
         $service = $mod->getService();
         $t = $service->getTheme($theme);
 
-        $isNewPreset = isset($_POST['save-current-setting']) ? (bool) $_POST['save-current-setting'] : false;
+        $isNewPreset = isset($_POST['save-current-setting']) && (bool) $_POST['save-current-setting'];
         $preset = $service->getCurrentThemePreset($t);
         if ($isNewPreset && isset($_POST['save-current-setting-preset']) && !empty($_POST['save-current-setting-preset'])) {
             $preset = $_POST['save-current-setting-preset'];
@@ -58,21 +60,19 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
 
         try {
             if (!$t->isAssetsPathWritable()) {
-                throw new \FOSSBilling\Exception('Theme ":name" assets folder is not writable. Files can not be uploaded and settings can not be saved. Set folder permissions to 777', [':name' => $t->getName()]);
+                throw new \FOSSBilling\Exception('Theme ":name" assets folder is not writable. Files cannot be uploaded and settings cannot be saved. Set folder permissions to 755', [':name' => $t->getName()]);
             }
             $service->updateSettings($t, $preset, $_POST);
             $service->regenerateThemeCssAndJsFiles($t, $preset, $api);
         } catch (\Exception $e) {
-            error_log($e);
-            $error = $e->getMessage();
+            error_log($e->getMessage());
         }
 
         // optional data file
         try {
             $service->regenerateThemeSettingsDataFile($t);
         } catch (\Exception $e) {
-            error_log($e);
-            $error = $e->getMessage();
+            error_log($e->getMessage());
         }
 
         $red_url = '/theme/' . $theme;
@@ -110,7 +110,6 @@ class Admin implements \FOSSBilling\InjectionAwareInterface
             'settings' => $service->getThemeSettings($t, $preset),
             'current_preset' => $preset,
             'presets' => $service->getThemePresets($t),
-            'snippets' => $t->getSnippets(),
         ];
 
         return $app->render('mod_theme_preset', $data);

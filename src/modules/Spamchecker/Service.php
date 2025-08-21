@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -14,12 +15,20 @@ namespace Box\Mod\Spamchecker;
 use EmailChecker\Adapter;
 use EmailChecker\Utilities;
 use FOSSBilling\InjectionAwareInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Contracts\Cache\ItemInterface;
 
 class Service implements InjectionAwareInterface
 {
     protected ?\Pimple\Container $di = null;
+    private readonly Filesystem $filesystem;
+
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+    }
 
     public function setDi(\Pimple\Container $di): void
     {
@@ -58,9 +67,9 @@ class Service implements InjectionAwareInterface
         $config = $di['mod_config']('Spamchecker');
         if (isset($config['block_ips']) && $config['block_ips'] && isset($config['blocked_ips'])) {
             $blocked_ips = explode(PHP_EOL, $config['blocked_ips']);
-            $blocked_ips = array_map('trim', $blocked_ips);
-            if (in_array($di['request']->getClientAddress(), $blocked_ips)) {
-                throw new \FOSSBilling\InformationException('Your IP address (:ip) is blocked. Please contact our support to lift your block.', [':ip' => $di['request']->getClientAddress()], 403);
+            $blocked_ips = array_map(trim(...), $blocked_ips);
+            if (in_array($di['request']->getClientIp(), $blocked_ips)) {
+                throw new \FOSSBilling\InformationException('Your IP address (:ip) is blocked. Please contact our support to lift your block.', [':ip' => $di['request']->getClientIp()], 403);
             }
         }
     }
@@ -93,7 +102,7 @@ class Service implements InjectionAwareInterface
                     'body' => [
                         'secret' => $config['captcha_recaptcha_privatekey'],
                         'response' => $params['g-recaptcha-response'],
-                        'remoteip' => $di['request']->getClientAddress(),
+                        'remoteip' => $di['request']->getClientIp(),
                     ],
                 ]);
                 $content = $response->toArray();
@@ -138,9 +147,15 @@ class Service implements InjectionAwareInterface
      */
     public function isInStopForumSpamDatabase(array $data)
     {
-        $data['f'] = 'json';
-        $url = 'https://www.stopforumspam.com/api?' . http_build_query($data);
-        $file_contents = file_get_contents($url);
+        $url = 'https://www.stopforumspam.com/api';
+        $client = HttpClient::create(['bindto' => BIND_TO]);
+        $queryParams = array_merge($data, ['f' => 'json']);
+        $response = $client->request(
+            'GET',
+            $url,
+            ['query' => $queryParams]
+        );
+        $file_contents = $response->getContent(false);
 
         $json = json_decode($file_contents);
         if (!is_object($json) || isset($json->success) && !$json->success) {
@@ -201,15 +216,15 @@ class Service implements InjectionAwareInterface
      */
     private function getTempMailDomainDB(): array
     {
-        return $this->di['cache']->get('CentralAlerts.getAlerts', function (ItemInterface $item) {
+        return $this->di['cache']->get('tempMailDB', function (ItemInterface $item) {
             $item->expiresAfter(86400); // The list is updated once every 24 hours, so we will cache it for that long
 
             $client = HttpClient::create(['bindto' => BIND_TO]);
             $response = $client->request('GET', 'https://raw.githubusercontent.com/7c/fakefilter/main/txt/data.txt');
-            $dbPath = PATH_CACHE . DIRECTORY_SEPARATOR . 'tempEmailDB.txt';
+            $dbPath = Path::join(PATH_CACHE, 'tempEmailDB.txt');
 
             if ($response->getStatusCode() === 200) {
-                @file_put_contents($dbPath, $response->getContent());
+                $this->filesystem->dumpFile($dbPath, $response->getContent());
             } else {
                 $item->expiresAfter(3600);
 
@@ -217,14 +232,14 @@ class Service implements InjectionAwareInterface
             }
 
             @$database = file($dbPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-            @unlink($dbPath);
+            $this->filesystem->remove($dbPath);
             if (!$database) {
                 $item->expiresAfter(3600);
 
                 return [];
             }
 
-            return array_filter($database, fn ($domain) => !str_starts_with($domain, '#') && filter_var($domain, FILTER_VALIDATE_DOMAIN));
+            return array_filter($database, fn ($domain): bool => !str_starts_with($domain, '#') && filter_var($domain, FILTER_VALIDATE_DOMAIN));
         });
     }
 }

@@ -38,7 +38,6 @@
                 <div class="tab-pane fade show active" id="tab-index" role="tabpanel">
                     <form method="post" action="{{ 'api/admin/extension/config_save'|link }}" class="api-form" data-api-msg="{{ 'Configuration Updated'|trans }}">
                         {% set params = admin.extension_config_get({ 'ext': 'mod_support' }) %}
-                        <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
                         <div class="card-body">
                             <h3 class="card-title">{{ 'Auto Responder'|trans }}</h3>
                             <div class="mb-3 row">
@@ -111,6 +110,17 @@
                                 </div>
                             </div>
                         </div>
+                        <div class="card-body">
+                            <h3 class="card-title">{{ 'Public Tickets'|trans }}</h3>
+                            <div class="mb-3 row">
+                                <label class="col-md-3 form-label">{{ 'Disable Public Tickets'|trans }}</label>
+                                <div class="col-md-6">
+                                    <label class="form-check form-switch">
+                                        <input class="form-check-input" name="disable_public_tickets" type="checkbox" {% if params.disable_public_tickets %} checked="checked"{% endif %}>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                         <div class="card-footer text-end">
                             <input type="submit" class="btn btn-primary" value="{{ 'Update'|trans }}">
                         </div>
@@ -127,7 +137,7 @@
                                     {{ 'New Helpdesk'|trans }}
                                 </a>
                             </div>
-                            {% include 'partial_search.html.twig' %}
+                            {{ include('partial_search.html.twig') }}
                         </div>
                     <table class="table card-table table-vcenter table-striped text-nowrap">
                         <thead>
@@ -147,7 +157,7 @@
                                     <a href="{{ '/support/helpdesk'|alink }}/{{ helpdesk.id }}">{{ helpdesk.name }}</a>
                                 </td>
                                 <td>{{ helpdesk.email }}</td>
-                                <td>{{ helpdesk.close_after }} hour(s)</td>
+                                <td>{{ helpdesk.close_after }} {{ 'hour(s)'|trans }}</td>
                                 <td>
                                     <a class="btn btn-icon" href="{{ '/support/helpdesk'|alink }}/{{ helpdesk.id }}"
                                     data-bs-toggle="tooltip" data-bs-title="{{ 'Edit'|trans }}">
@@ -156,7 +166,7 @@
                                         </svg>
                                     </a>
                                     <a class="btn btn-icon api-link"
-                                       href="{{ 'api/admin/support/helpdesk_delete'|link({ 'id': helpdesk.id, 'CSRFToken': CSRFToken }) }}"
+                                       href="{{ 'api/admin/support/helpdesk_delete'|link({ 'id': helpdesk.id }) }}"
                                        data-api-confirm="{{ 'Are you sure?'|trans }}"
                                        data-api-confirm-btn="{{ 'Delete'|trans }}"
                                        data-api-type="danger"
@@ -180,7 +190,7 @@
         </div>
     </div>
 
-{% include 'modal/mod_support_new_helpdesk.html.twig' %}
+{{ include('modal/mod_support_new_helpdesk.html.twig') }}
 {% endblock %}
 
 {% block js %}

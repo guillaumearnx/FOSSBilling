@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -81,7 +82,7 @@ class Guest extends \Api_Abstract
     {
         $required = [
             'hash' => 'Public ticket hash required',
-            'message' => 'Message is required and can not be blank',
+            'message' => 'Message is required and cannot be blank',
         ];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
@@ -117,7 +118,7 @@ class Guest extends \Api_Abstract
         $status = $data['status'] ?? null;
         $search = $data['search'] ?? null;
         $cat = $data['kb_article_category_id'] ?? null;
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
         $page = $data['page'] ?? null;
 
         $pager = $this->getService()->kbSearchArticles($status, $search, $cat, $per_page, $page);
@@ -169,8 +170,8 @@ class Guest extends \Api_Abstract
         $data['article_status'] = \Model_SupportKbArticle::ACTIVE;
         [$query, $bindings] = $this->getService()->kbCategoryGetSearchQuery($data);
 
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getAdvancedResultSet($query, $bindings, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($query, $bindings, $per_page);
 
         $q = $data['q'] ?? null;
 
@@ -214,7 +215,7 @@ class Guest extends \Api_Abstract
         }
 
         if (!$model instanceof \Model_SupportKbArticleCategory) {
-            throw new \FOSSBilling\InformationException('Knowledge base category not found');
+            throw new \FOSSBilling\InformationException('Knowledge Base category not found');
         }
 
         return $this->getService()->kbCategoryToApiArray($model, $this->getIdentity());

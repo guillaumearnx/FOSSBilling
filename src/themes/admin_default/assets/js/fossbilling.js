@@ -150,7 +150,11 @@ globalThis.bb = {
           const formData = new FormData(formElement);
 
           // Get all CKEditor instances and replace the original textarea values with the updated content.
-          if (typeof editors !== "undefined" && Array.isArray(editors) && editors.length > 0) {
+          if (
+            typeof editors !== "undefined" &&
+            Array.isArray(editors) &&
+            editors.length > 0
+          ) {
             let editorContentOnRequiredAttr = false;
             Object.keys(editors).forEach(function (name) {
               editorContentOnRequiredAttr = editors[name].required
@@ -172,14 +176,27 @@ globalThis.bb = {
           } else {
             data = formData.serialize();
           }
+
+          let buttons = document.querySelectorAll("button:not([disabled])");
+
+          buttons.forEach(function (button) {
+            button.setAttribute("disabled", "true");
+          });
+
           API.makeRequest(
             formElement.getAttribute("method"),
             bb.restUrl(formElement.getAttribute("action")),
             data,
             function (result) {
+              buttons.forEach(function (button) {
+                button.removeAttribute("disabled");
+              });
               return bb._afterComplete(formElement, result);
             },
             function (error) {
+              buttons.forEach(function (button) {
+                button.removeAttribute("disabled");
+              });
               FOSSBilling.message(`${error.message} (${error.code})`, "error");
             }
           );
@@ -384,7 +401,7 @@ $.fn.simpleTabs = function () {
   if ($(document.location.hash).length) {
     $('a[href="' + document.location.hash + '"]')
       .parent()
-      .click();
+      .trigger();
     $(window).scrollTop(window.location.href.indexOf("#"));
   }
 }; //end function

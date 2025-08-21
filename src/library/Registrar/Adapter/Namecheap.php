@@ -86,27 +86,6 @@ class Registrar_Adapter_Namecheap extends Registrar_AdapterAbstract
         ];
     }
 
-    /**
-     * Tells what TLDs can be registered via this adapter.
-     *
-     * @return string[]
-     */
-    public function getTlds()
-    {
-        $params = [
-            'Command' => 'namecheap.domains.getTldList',
-        ];
-
-        $result = $this->_makeRequest($params);
-        $strTlds = [];
-        $xmlTlds = $result->CommandResponse->Tlds;
-        foreach ($xmlTlds->tld as $tld) {
-            $strTlds[] = '.' . $tld['Name'];
-        }
-
-        return $strTlds;
-    }
-
     public function isDomainAvailable(Registrar_Domain $domain)
     {
         $params = [
@@ -160,8 +139,8 @@ class Registrar_Adapter_Namecheap extends Registrar_AdapterAbstract
                 $this->getLog()->debug('API REQUEST: ' . $callUrl . '?' . $this->_formatParams($params));
             }
         } catch (HttpExceptionInterface $error) {
-            $e = new Registrar_Exception(sprintf('HttpClientException: %s', $error->getMessage()));
-            $this->getLog()->err($e);
+            $e = new Registrar_Exception("HttpClientException: {$error->getMessage()}.");
+            $this->getLog()->err($e->getMessage());
 
             throw $e;
         }
@@ -200,15 +179,13 @@ class Registrar_Adapter_Namecheap extends Registrar_AdapterAbstract
      */
     private function _formatParams($params)
     {
-        foreach ($params as $key => &$param) {
+        foreach ($params as &$param) {
             if (is_bool($param)) {
                 $param = ($param) ? 'true' : 'false';
             }
         }
 
-        $params = http_build_query($params);
-
-        return $params;
+        return http_build_query($params);
     }
 
     /**

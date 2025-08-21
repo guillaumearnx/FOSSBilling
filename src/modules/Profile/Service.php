@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -122,7 +123,7 @@ class Service implements InjectionAwareInterface
             && isset($config['disable_change_email'])
             && $config['disable_change_email']
         ) {
-            throw new \FOSSBilling\InformationException('Email can not be changed');
+            throw new \FOSSBilling\InformationException('Email address cannot be changed');
         }
 
         if (!empty($email)) {
@@ -130,7 +131,7 @@ class Service implements InjectionAwareInterface
 
             $clientService = $this->di['mod_service']('client');
             if ($clientService->emailAlreadyRegistered($email, $client)) {
-                throw new \FOSSBilling\InformationException('Can not change email. It is already registered.');
+                throw new \FOSSBilling\InformationException('This email address is already registered.');
             }
 
             $client->email = $email;
@@ -141,10 +142,15 @@ class Service implements InjectionAwareInterface
         $client->gender = $data['gender'] ?? $client->gender;
 
         $birthday = $data['birthday'] ?? null;
-        if (strlen(trim($birthday)) > 0 && strtotime($birthday) === false) {
+
+        // Special handling for the birthday field
+        if (is_string($birthday) && strlen(trim($birthday)) === 0) {
+            $birthday = null;
+        } elseif ($birthday !== null && strtotime($birthday) === false) {
             throw new \FOSSBilling\InformationException('Invalid birthdate value');
         }
-        $client->birthday = $birthday;
+
+        $client->birthday = $birthday ?? $client->birthday;
 
         $client->company = $data['company'] ?? $client->company;
         $client->company_vat = $data['company_vat'] ?? $client->company_vat;
@@ -225,7 +231,7 @@ class Service implements InjectionAwareInterface
         return true;
     }
 
-    public function invalidateSessions(string $type = null, int $id = null): bool
+    public function invalidateSessions(?string $type = null, ?int $id = null): bool
     {
         if (empty($type)) {
             $auth = new \Box_Authorization($this->di);
@@ -267,9 +273,8 @@ class Service implements InjectionAwareInterface
     private function getSessions(): array
     {
         $query = 'SELECT * FROM session WHERE content IS NOT NULL AND content <> ""';
-        $sessions = $this->di['db']->getAll($query);
 
-        return $sessions;
+        return $this->di['db']->getAll($query);
     }
 
     private function deleteSessionIfMatching(array $session, string $type, int $id): void

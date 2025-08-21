@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -43,7 +43,7 @@ class Monolog
         $channels = $this->channels;
 
         foreach ($channels as $channel) {
-            $path = Path::normalize(PATH_LOG . "/$channel/" . $channel . '.log');
+            $path = Path::join(PATH_LOG, $channel, "{$channel}.log");
 
             $this->logger[$channel] = new Logger($channel);
             $rotatingHandler = new RotatingFileHandler($path, 90, Level::Debug);
@@ -88,6 +88,10 @@ class Monolog
         $message = $event['message'];
         $context = isset($event['info']) && is_array($event['info']) ? $event['info'] : [];
 
-        $this->getChannel($channel)->log($priority, $message, $context);
+        try {
+            $this->getChannel($channel)->log($priority, $message, $context);
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+        }
     }
 }

@@ -4,7 +4,7 @@
 {% set company = guest.system_company %}
 
 <!DOCTYPE html>
-<html lang="">
+<html lang="" data-bs-theme="dark">
 
 <head>
     <title>{% block meta_title %}{% endblock %} - {{ company.name }}</title>
@@ -15,7 +15,7 @@
 
     <link rel="shortcut icon" href="{{ company.favicon_url }}">
 
-    {% include 'partial_bb_meta.html.twig' %}
+    {{ include('partial_bb_meta.html.twig') }}
 
     {{ encore_entry_link_tags('fossbilling') }}
     {{ "Api/API.js" | library_url | script_tag }}
@@ -25,12 +25,12 @@
     {% block head %}{% endblock %}
 </head>
 
-<body data-bs-theme="dark">
+<body>
     <script>
         if (localStorage.getItem('theme') === 'dark') {
-            document.body.setAttribute("data-bs-theme", localStorage.getItem('theme'));
+            document.documentElement.setAttribute("data-bs-theme", localStorage.getItem('theme'));
         } else {
-            document.body.removeAttribute("data-bs-theme");
+            document.documentElement.removeAttribute("data-bs-theme");
         }
 
         {% if not admin %}
@@ -49,7 +49,7 @@
             <header class="navbar navbar-expand-lg navbar-light d-print-none">
                <div class="container-xl">
                    <div class="d-flex gap-3 align-items-center">
-                       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="Toggle navigation">
+                       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar-menu" aria-controls="navbar-menu" aria-expanded="false" aria-label="{{ 'Toggle navigation'|trans }}">
                            <span class="navbar-toggler-icon"></span>
                        </button>
                        <h1 class="d-none d-sm-flex navbar-brand d-none-navbar-horizontal pe-0 pe-md-3 a">
@@ -76,7 +76,7 @@
                               <svg class="icon icon-tabler icon-tabler-arrow-back-up m-0">
                                  <use xlink:href="#brand-github" />
                               </svg>
-                              <span class="d-none d-md-block ms-2">{{ 'Source code'|trans }}</span>
+                              <span class="d-none d-md-block ms-2">GitHub</span>
                            </a>
                            <a href="https://github.com/sponsors/FOSSBilling" class="btn px-3" target="_blank" rel="noreferrer">
                               <svg class="icon icon-tabler icon-tabler-heart m-0 text-pink">
@@ -110,7 +110,7 @@
                         <a class="nav-link d-flex lh-1 text-reset p-0"
                            href="{{ 'staff/profile'|alink }}"
                            data-bs-toggle="dropdown"
-                           aria-label="Open user menu"
+                           aria-label="{{ 'Open user menu'|trans }}"
                            aria-expanded="false">
                            <span class="avatar avatar-sm" style="background-image: url({{ profile.email|gravatar }}&size=32)"></span>
                            <div class="d-none d-xl-block ps-2">
@@ -132,7 +132,7 @@
                   </div>
                </div>
             </header>
-            <header class="navbar-expand-lg">
+            <nav class="navbar-expand-lg sticky-nav">
                 <div class="collapse navbar-collapse" id="navbar-menu">
                     <div class="navbar navbar-light">
                         <div class="container-xl">
@@ -180,7 +180,7 @@
                                     <div class="dropdown-menu-columns">
                                         <div class="dropdown-menu-column">
                                             <a class="dropdown-item" href="https://fossbilling.org/docs" target="_blank" rel="noopener">{{ 'Documentation'|trans }}</a>
-                                            <a class="dropdown-item" href="https://github.com/FOSSBilling/FOSSBilling" target="_blank" rel="noopener">{{ 'Source code'|trans }}</a>
+                                            <a class="dropdown-item" href="https://github.com/FOSSBilling/FOSSBilling" target="_blank" rel="noopener">GitHub</a>
                                             <a class="dropdown-item" href="https://github.com/FOSSBilling/FOSSBilling/issues" target="_blank" rel="noopener">{{ 'Report a bug'|trans }}</a>
                                         </div>
                                     </div>
@@ -190,7 +190,7 @@
                         </div>
                     </div>
                   </div>
-            </header>
+            </nav>
             <main class="page-body">
                 <div class="container-xl">
                     <nav class="mb-3" aria-label="breadcrumb">
@@ -214,7 +214,9 @@
 
             <footer class="footer footer-transparent d-print-none">
                 <div class="container-xl">
-                    <div>Copyright &copy; {{ now|format_date(pattern='yyyy') }}. All rights reserved. Powered by <a href="https://fossbilling.org" title="Billing system" target="_blank" rel="noopener">FOSSBilling {{ FOSSBillingVersion }}</a></div>
+                    <p>&copy; {{ now|format_date(pattern='yyyy') }} <a href="https://github.com/FOSSBilling">FOSSBilling contributors</a>.
+                    Licensed under <a href="https://www.apache.org/licenses/LICENSE-2.0">Apache 2.0</a>.
+                    Running version <code>{{ FOSSBillingVersion }}</code>.</p>
                 </div>
             </footer>
         </div>
@@ -224,10 +226,10 @@
     <div class="loading dim"></div>
 
     <div class="d-none">
-        {% include '../build/symbol/icons-sprite.svg' %}
+        {{ include('../build/symbol/icons-sprite.svg') }}
     </div>
 
-    <button type="button" aria-label="Back to top" class="btn btn-floating btn-lg btn-icon hidden" id="back-to-top">
+    <button type="button" aria-label="{ 'Back to top'|trans }}" class="btn btn-floating btn-lg btn-icon hidden" id="back-to-top">
         <svg class="icon">
             <use xlink:href="#arrow-up" />
         </svg>

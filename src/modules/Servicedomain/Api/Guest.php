@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -23,7 +24,7 @@ class Guest extends \Api_Abstract
      *
      * @return array - list of TLDs
      */
-    public function tlds($data = [])
+    public function tlds($data = []): array
     {
         $allow_register = $data['allow_register'] ?? null;
         $allow_transfer = $data['allow_transfer'] ?? null;
@@ -121,7 +122,7 @@ class Guest extends \Api_Abstract
             throw new \FOSSBilling\InformationException('TLD is not active.');
         }
         if (!$this->getService()->canBeTransferred($tld, $data['sld'])) {
-            throw new \FOSSBilling\InformationException('Domain can not be transferred.');
+            throw new \FOSSBilling\InformationException('Domain cannot be transferred.');
         }
 
         return true;

@@ -14,7 +14,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->service = new ServiceTransaction();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->service->setDi($di);
@@ -22,7 +22,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testproccessReceivedATransactions()
+    public function testprocessReceivedATransactions(): void
     {
         $transactionModel = new \Model_Transaction();
         $transactionModel->loadBean(new \DummyBean());
@@ -47,11 +47,11 @@ class ServiceTransactionTest extends \BBTestCase
         $di['db'] = $dbMock;
 
         $serviceMock->setDi($di);
-        $result = $serviceMock->proccessReceivedATransactions();
+        $result = $serviceMock->processReceivedATransactions();
         $this->assertTrue($result);
     }
 
-    public function testupdate()
+    public function testupdate(): void
     {
         $eventsMock = $this->getMockBuilder('\Box_EventManager')->getMock();
         $eventsMock->expects($this->atLeastOnce())
@@ -88,57 +88,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testcreate()
-    {
-        $eventsMock = $this->getMockBuilder('\Box_EventManager')->getMock();
-        $eventsMock->expects($this->atLeastOnce())
-            ->method('fire');
-
-        $transactionModel = new \Model_Transaction();
-        $transactionModel->loadBean(new \DummyBean());
-
-        $invoiceModel = new \Model_Invoice();
-        $invoiceModel->loadBean(new \DummyBean());
-
-        $payGatewayModel = new \Model_PayGateway();
-        $payGatewayModel->loadBean(new \DummyBean());
-        $dbMock = $this->getMockBuilder('\Box_Database')
-            ->getMock();
-        $dbMock->expects($this->atLeastOnce())
-            ->method('getExistingModelById')
-            ->will($this->onConsecutiveCalls($invoiceModel, $payGatewayModel));
-        $dbMock->expects($this->atLeastOnce())
-            ->method('dispense')
-            ->willReturn($transactionModel);
-
-        $newId = 2;
-        $dbMock->expects($this->atLeastOnce())
-            ->method('store')
-            ->willReturn($newId);
-
-        $requestMock = $this->getMockBuilder('\\' . \FOSSBilling\Request::class)->getMock();
-        $requestMock->expects($this->atLeastOnce())
-            ->method('getClientAddress');
-
-        $di = new \Pimple\Container();
-        $di['db'] = $dbMock;
-        $di['events_manager'] = $eventsMock;
-        $di['request'] = $requestMock;
-        $di['logger'] = new \Box_Log();
-
-        $this->service->setDi($di);
-
-        $data = [
-            'skip_validation' => false,
-            'bb_gateway_id' => 1,
-            'bb_invoice_id' => 2,
-        ];
-        $result = $this->service->create($data);
-        $this->assertIsInt($result);
-        $this->assertEquals($newId, $result);
-    }
-
-    public function testcreateInvalidMissinginvoiceId()
+    public function testcreateInvalidMissinginvoiceId(): void
     {
         $eventsMock = $this->getMockBuilder('\Box_EventManager')->getMock();
         $eventsMock->expects($this->atLeastOnce())
@@ -151,15 +101,15 @@ class ServiceTransactionTest extends \BBTestCase
 
         $data = [
             'skip_validation' => false,
-            'bb_gateway_id' => 1,
+            'gateway_id' => 1,
         ];
 
         $this->expectException(\FOSSBilling\Exception::class);
-        $this->expectExceptionMessage('Transaction invoice id is missing');
+        $this->expectExceptionMessage('Transaction invoice ID is missing');
         $this->service->create($data);
     }
 
-    public function testcreateInvalidMissingbbGatewayId()
+    public function testcreateInvalidMissingbbGatewayId(): void
     {
         $eventsMock = $this->getMockBuilder('\Box_EventManager')->getMock();
         $eventsMock->expects($this->atLeastOnce())
@@ -172,15 +122,15 @@ class ServiceTransactionTest extends \BBTestCase
 
         $data = [
             'skip_validation' => false,
-            'bb_invoice_id' => 2,
+            'invoice_id' => 2,
         ];
 
         $this->expectException(\FOSSBilling\Exception::class);
-        $this->expectExceptionMessage('Payment gateway id is missing');
+        $this->expectExceptionMessage('Payment gateway ID is missing');
         $this->service->create($data);
     }
 
-    public function testdelete()
+    public function testdelete(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')
             ->getMock();
@@ -199,7 +149,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testtoApiArray()
+    public function testtoApiArray(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')
             ->getMock();
@@ -283,7 +233,7 @@ class ServiceTransactionTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('searchQueryData')]
-    public function testgetSearchQuery($data, $expectedParams, $expectedStringPart)
+    public function testgetSearchQuery($data, $expectedParams, $expectedStringPart): void
     {
         $di = new \Pimple\Container();
 
@@ -296,7 +246,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expectedParams, $result[1]);
     }
 
-    public function testcounter()
+    public function testcounter(): void
     {
         $queryResult = [['status' => \Model_Transaction::STATUS_RECEIVED, 'counter' => 1]];
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
@@ -320,7 +270,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetStatusPairs()
+    public function testgetStatusPairs(): void
     {
         $result = $this->service->getStatusPairs();
         $this->assertIsArray($result);
@@ -334,7 +284,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetStatus()
+    public function testgetStatus(): void
     {
         $result = $this->service->getStatuses();
         $this->assertIsArray($result);
@@ -348,7 +298,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetGatewayStatuses()
+    public function testgetGatewayStatuses(): void
     {
         $result = $this->service->getGatewayStatuses();
         $this->assertIsArray($result);
@@ -361,7 +311,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetTypes()
+    public function testgetTypes(): void
     {
         $result = $this->service->getTypes();
         $this->assertIsArray($result);
@@ -376,7 +326,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testpreProcessTransaction()
+    public function testpreProcessTransaction(): void
     {
         $transactionModel = new \Model_Transaction();
         $transactionModel->loadBean(new \DummyBean());
@@ -401,7 +351,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertIsString($result);
     }
 
-    public function testpreProcessTransactionRegisterException()
+    public function testpreProcessTransactionRegisterException(): void
     {
         $transactionModel = new \Model_Transaction();
         $transactionModel->loadBean(new \DummyBean());
@@ -437,7 +387,7 @@ class ServiceTransactionTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('paymentsAdapterProvider_withprocessTransaction')]
-    public function testprocessTransactionSupportProcessTransaction($adapter)
+    public function testprocessTransactionSupportProcessTransaction($adapter): void
     {
         $id = 1;
         $transactionModel = new \Model_Transaction();
@@ -508,7 +458,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testdebitTransaction()
+    public function testdebitTransaction(): void
     {
         $currency = 'EUR';
         $invoiceModel = new \Model_Invoice();
@@ -543,7 +493,7 @@ class ServiceTransactionTest extends \BBTestCase
         $this->service->debitTransaction($transactionModel);
     }
 
-    public function testcreateAndProcess()
+    public function testcreateAndProcess(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . ServiceTransaction::class)
             ->onlyMethods(['create', 'processTransaction'])

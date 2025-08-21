@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -154,7 +155,8 @@ class Guest extends \Api_Abstract
     public function paginator($data)
     {
         $midrange = 7;
-        $current_page = $data['page'];
+        $page_param = $data['page_param'] ?? 'page';
+        $current_page = $data[$page_param];
         $limit = $data['per_page'];
         $itemsCount = $data['total'];
 

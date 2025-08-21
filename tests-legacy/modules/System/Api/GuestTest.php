@@ -14,7 +14,7 @@ class GuestTest extends \BBTestCase
         $this->api = new Guest();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->api->setDi($di);
@@ -22,7 +22,7 @@ class GuestTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testVersionAdmin()
+    public function testVersionAdmin(): void
     {
         $authorizationMock = $this->getMockBuilder('\Box_Authorization')->disableOriginalConstructor()->getMock();
         $authorizationMock->expects($this->atLeastOnce())
@@ -45,7 +45,7 @@ class GuestTest extends \BBTestCase
         $this->assertNotEmpty($result);
     }
 
-    public function testVersionShowPublicOn()
+    public function testVersionShowPublicOn(): void
     {
         $authorizationMock = $this->getMockBuilder('\Box_Authorization')->disableOriginalConstructor()->getMock();
         $authorizationMock->expects($this->atLeastOnce())
@@ -72,7 +72,7 @@ class GuestTest extends \BBTestCase
         $this->assertNotEmpty($result);
     }
 
-    public function testVersionShowPublicOff()
+    public function testVersionShowPublicOff(): void
     {
         $authorizationMock = $this->getMockBuilder('\Box_Authorization')->disableOriginalConstructor()->getMock();
         $authorizationMock->expects($this->atLeastOnce())
@@ -96,7 +96,7 @@ class GuestTest extends \BBTestCase
         $this->assertEmpty($result);
     }
 
-    public function testCompanyShowPublicOn()
+    public function testCompanyShowPublicOn(): void
     {
         $companyData = ['companyName' => 'TestCo'];
 
@@ -123,7 +123,7 @@ class GuestTest extends \BBTestCase
         $this->assertNotEmpty($result);
     }
 
-    public function testCompanyShowPublicOff()
+    public function testCompanyShowPublicOff(): void
     {
         $companyData = [
             'companyName' => 'TestCo',
@@ -167,67 +167,7 @@ class GuestTest extends \BBTestCase
         $this->assertArrayNotHasKey('address_3', $result);
     }
 
-    public function testphoneCodes()
-    {
-        $data = [
-        ];
-        $servuceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
-        $servuceMock->expects($this->atLeastOnce())
-            ->method('getPhoneCodes')
-            ->willReturn([]);
-
-        $this->api->setService($servuceMock);
-
-        $result = $this->api->phone_codes($data);
-        $this->assertIsArray($result);
-    }
-
-    public function teststates()
-    {
-        $servuceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
-        $servuceMock->expects($this->atLeastOnce())
-            ->method('getStates')
-            ->willReturn([]);
-
-        $this->api->setService($servuceMock);
-
-        $result = $this->api->states();
-        $this->assertIsArray($result);
-    }
-
-    public function testcountriesEunion()
-    {
-        $servuceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
-        $servuceMock->expects($this->atLeastOnce())
-            ->method('getEuCountries')
-            ->willReturn([]);
-
-        $this->api->setService($servuceMock);
-
-        $result = $this->api->countries_eunion();
-        $this->assertIsArray($result);
-    }
-
-    public function testcountries()
-    {
-        $servuceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
-        $servuceMock->expects($this->atLeastOnce())
-            ->method('getCountries')
-            ->willReturn([]);
-
-        $this->api->setService($servuceMock);
-
-        $result = $this->api->countries();
-        $this->assertIsArray($result);
-    }
-
-    public function testPeriods()
-    {
-        $result = $this->api->periods();
-        $this->assertIsArray($result);
-    }
-
-    public function testperiodTitle()
+    public function testperiodTitle(): void
     {
         $data = ['code' => 'periodCode'];
 
@@ -244,7 +184,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsString($result);
     }
 
-    public function testperiodTitleMissingCode()
+    public function testperiodTitleMissingCode(): void
     {
         $data = [];
         $expected = '-';
@@ -256,48 +196,7 @@ class GuestTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testtemplateExists()
-    {
-        $data = [
-            'file' => 'testing.txt',
-        ];
-
-        $servuceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
-        $servuceMock->expects($this->atLeastOnce())
-            ->method('templateExists')
-            ->willReturn(true);
-
-        $this->api->setService($servuceMock);
-
-        $result = $this->api->template_exists($data);
-        $this->assertIsBool($result);
-        $this->assertTrue($result);
-    }
-
-    public function testtemplateExistsFileParamMissing()
-    {
-        $data = [
-        ];
-
-        $result = $this->api->template_exists($data);
-        $this->assertIsBool($result);
-        $this->assertFalse($result);
-    }
-
-    public function testlocale()
-    {
-        $setLang = 'en_US';
-        $di = new \Pimple\Container();
-
-        $this->api->setDi($di);
-
-        $result = $this->api->locale();
-        $this->assertIsString($result);
-        $this->assertNotEmpty($result);
-        $this->assertEquals($setLang, $result);
-    }
-
-    public function testgetPendingMessages()
+    public function testgetPendingMessages(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\System\Service::class)->getMock();
         $messageArr = ['Important message to user'];

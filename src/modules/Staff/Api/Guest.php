@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -71,12 +73,12 @@ class Guest extends \Api_Abstract
         $config = $this->getMod()->getConfig();
 
         // check ip
-        if (isset($config['allowed_ips']) && isset($config['check_ip']) && $config['check_ip']) {
+        if (!empty($config['allowed_ips']) && isset($config['check_ip']) && $config['check_ip']) {
             $allowed_ips = explode(PHP_EOL, $config['allowed_ips']);
             if ($allowed_ips) {
-                $allowed_ips = array_map('trim', $allowed_ips);
+                $allowed_ips = array_map(trim(...), $allowed_ips);
                 if (!in_array($this->getIp(), $allowed_ips)) {
-                    throw new \FOSSBilling\InformationException('You are not allowed to login to admin area from :ip address', [':ip' => $this->getIp()], 403);
+                    throw new \FOSSBilling\InformationException('You are not allowed to login to admin area from :ip address.', [':ip' => $this->getIp()], 403);
                 }
             }
         }
@@ -109,11 +111,11 @@ class Guest extends \Api_Abstract
 
         $reset = $this->di['db']->findOne('AdminPasswordReset', 'hash = ?', [$data['code']]);
         if (!$reset instanceof \Model_AdminPasswordReset) {
-            throw new \FOSSBilling\InformationException('The link have expired or you have already confirmed password reset.');
+            throw new \FOSSBilling\InformationException('The link has expired or you have already confirmed the password reset.');
         }
 
         if (strtotime($reset->created_at) - time() + 900 < 0) {
-            throw new \FOSSBilling\InformationException('The link have expired or you have already confirmed password reset.');
+            throw new \FOSSBilling\InformationException('The link has expired or you have already confirmed the password reset.');
         }
 
         $c = $this->di['db']->getExistingModelById('Admin', $reset->admin_id, 'User not found');

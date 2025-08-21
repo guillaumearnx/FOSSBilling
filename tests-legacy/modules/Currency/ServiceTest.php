@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Currency;
 
 class ServiceTest extends \BBTestCase
 {
-    public function testDi()
+    public function testDi(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -17,7 +17,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($di, $result);
     }
 
-    public function testGetSearchQuery()
+    public function testGetSearchQuery(): void
     {
         $service = new \Box\Mod\Currency\Service();
         $result = $service->getSearchQuery();
@@ -26,7 +26,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals('SELECT * FROM currency WHERE 1', $result[0]);
     }
 
-    public function testGetBaseCurrencyRate()
+    public function testGetBaseCurrencyRate(): void
     {
         $service = new \Box\Mod\Currency\Service();
         $rate = 0.6;
@@ -44,7 +44,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testGetBaseCurrencyRateException()
+    public function testGetBaseCurrencyRateException(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -71,7 +71,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('toBaseCurrencyProvider')]
-    public function testToBaseCurrency($defaultCode, $foreignCode, $amount, $rate, $expected)
+    public function testToBaseCurrency($defaultCode, $foreignCode, $amount, $rate, $expected): void
     {
         $model = new \Model_Currency();
         $bean = new \DummyBean();
@@ -120,7 +120,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('getCurrencyByClientIdProvider')]
-    public function testGetCurrencyByClientId($row, $currency, $expectsGetByCode, $getDefaultCalled)
+    public function testGetCurrencyByClientId($row, $currency, $expectsGetByCode, $getDefaultCalled): void
     {
         $di = new \Pimple\Container();
         $db = $this->getMockBuilder('Box_Database')->getMock();
@@ -148,7 +148,7 @@ class ServiceTest extends \BBTestCase
         $this->assertInstanceOf('Model_Currency', $result);
     }
 
-    public function testGetCurrencyByClientIdNotFounfByCode()
+    public function testGetCurrencyByClientIdNotFounfByCode(): void
     {
         $di = new \Pimple\Container();
         $db = $this->getMockBuilder('Box_Database')->getMock();
@@ -175,7 +175,7 @@ class ServiceTest extends \BBTestCase
         $this->assertInstanceOf('Model_Currency', $result);
     }
 
-    public function testgetByCode()
+    public function testgetByCode(): void
     {
         $di = new \Pimple\Container();
         $service = new \Box\Mod\Currency\Service();
@@ -211,7 +211,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('getRateByCodeProvider')]
-    public function testGetRateByCode($code, $returns, $expected)
+    public function testGetRateByCode($code, $returns, $expected): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -227,7 +227,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testGetDefault()
+    public function testGetDefault(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -271,7 +271,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('setAsDefaultProvider')]
-    public function testSetAsDefault($model, $expects)
+    public function testSetAsDefault($model, $expects): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -289,7 +289,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testSetAsDefaultException()
+    public function testSetAsDefaultException(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -310,7 +310,7 @@ class ServiceTest extends \BBTestCase
         $service->setAsDefault($model); // Currency code is null, should throw an \FOSSBilling\Exception
     }
 
-    public function testgetPairs()
+    public function testgetPairs(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -332,172 +332,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, $pairs);
     }
 
-    public function testGetAvailableCurrencies()
-    {
-        $service = new \Box\Mod\Currency\Service();
-
-        $availableCurrencies = [
-            'AED' => 'AED - United Arab Emirates dirham',
-            'AFN' => 'AFN - Afghan afghani',
-            'ALL' => 'ALL - Albanian lek',
-            'AMD' => 'AMD - Armenian dram',
-            'ANG' => 'ANG - Netherlands Antillean guilder',
-            'AOA' => 'AOA - Angolan kwanza',
-            'ARS' => 'ARS - Argentine peso',
-            'AUD' => 'AUD - Australian dollar',
-            'AWG' => 'AWG - Aruban florin',
-            'AZN' => 'AZN - Azerbaijani manat',
-            'BAM' => 'BAM - Bosnia and Herzegovina convertible mark',
-            'BBD' => 'BBD - Barbados dollar',
-            'BDT' => 'BDT - Bangladeshi taka',
-            'BGN' => 'BGN - Bulgarian lev',
-            'BHD' => 'BHD - Bahraini dinar',
-            'BIF' => 'BIF - Burundian franc',
-            'BMD' => 'BMD - Bermudian dollar',
-            'BND' => 'BND - Brunei dollar',
-            'BOB' => 'BOB - Boliviano',
-            'BRL' => 'BRL - Brazilian real',
-            'BSD' => 'BSD - Bahamian dollar',
-            'BTN' => 'BTN - Bhutanese ngultrum',
-            'BWP' => 'BWP - Botswana pula',
-            'BYR' => 'BYR - Belarusian ruble',
-            'BZD' => 'BZD - Belize dollar',
-            'CAD' => 'CAD - Canadian dollar',
-            'CDF' => 'CDF - Congolese franc',
-            'CHF' => 'CHF - Swiss franc',
-            'CLP' => 'CLP - Chilean peso',
-            'CNY' => 'CNY - Chinese yuan',
-            'COP' => 'COP - Colombian peso',
-            'COU' => 'COU - Unidad de Valor Real',
-            'CRC' => 'CRC - Costa Rican colon',
-            'CUC' => 'CUC - Cuban convertible peso',
-            'CUP' => 'CUP - Cuban peso',
-            'CVE' => 'CVE - Cape Verde escudo',
-            'CZK' => 'CZK - Czech koruna',
-            'DJF' => 'DJF - Djiboutian franc',
-            'DKK' => 'DKK - Danish krone',
-            'DOP' => 'DOP - Dominican peso',
-            'DZD' => 'DZD - Algerian dinar',
-            'EGP' => 'EGP - Egyptian pound',
-            'ERN' => 'ERN - Eritrean nakfa',
-            'ETB' => 'ETB - Ethiopian birr',
-            'EUR' => 'EUR - Euro',
-            'FJD' => 'FJD - Fiji dollar',
-            'FKP' => 'FKP - Falkland Islands pound',
-            'GBP' => 'GBP - Pound sterling',
-            'GEL' => 'GEL - Georgian lari',
-            'GHS' => 'GHS - Ghanaian cedi',
-            'GIP' => 'GIP - Gibraltar pound',
-            'GMD' => 'GMD - Gambian dalasi',
-            'GNF' => 'GNF - Guinean franc',
-            'GTQ' => 'GTQ - Guatemalan quetzal',
-            'GYD' => 'GYD - Guyanese dollar',
-            'HKD' => 'HKD - Hong Kong dollar',
-            'HNL' => 'HNL - Honduran lempira',
-            'HRK' => 'HRK - Croatian kuna',
-            'HTG' => 'HTG - Haitian gourde',
-            'HUF' => 'HUF - Hungarian forint',
-            'IDR' => 'IDR - Indonesian rupiah',
-            'ILS' => 'ILS - Israeli new sheqel',
-            'INR' => 'INR - Indian rupee',
-            'IQD' => 'IQD - Iraqi dinar',
-            'IRR' => 'IRR - Iranian rial',
-            'ISK' => 'ISK - Icelandic króna',
-            'JMD' => 'JMD - Jamaican dollar',
-            'JOD' => 'JOD - Jordanian dinar',
-            'JPY' => 'JPY - Japanese yen',
-            'KES' => 'KES - Kenyan shilling',
-            'KGS' => 'KGS - Kyrgyzstani som',
-            'KHR' => 'KHR - Cambodian riel',
-            'KMF' => 'KMF - Comoro franc',
-            'KPW' => 'KPW - North Korean won',
-            'KRW' => 'KRW - South Korean won',
-            'KWD' => 'KWD - Kuwaiti dinar',
-            'KYD' => 'KYD - Cayman Islands dollar',
-            'KZT' => 'KZT - Kazakhstani tenge',
-            'LAK' => 'LAK - Lao kip',
-            'LBP' => 'LBP - Lebanese pound',
-            'LKR' => 'LKR - Sri Lanka rupee',
-            'LRD' => 'LRD - Liberian dollar',
-            'LSL' => 'LSL - Lesotho loti',
-            'LYD' => 'LYD - Libyan dinar',
-            'MAD' => 'MAD - Moroccan dirham',
-            'MDL' => 'MDL - Moldovan leu',
-            'MGA' => 'MGA - Malagasy ariary',
-            'MKD' => 'MKD - Macedonian denar',
-            'MMK' => 'MMK - Myanma kyat',
-            'MNT' => 'MNT - Mongolian tugrik',
-            'MOP' => 'MOP - Macanese pataca',
-            'MRO' => 'MRO - Mauritanian ouguiya',
-            'MUR' => 'MUR - Mauritian rupee',
-            'MVR' => 'MVR - Maldivian rufiyaa',
-            'MWK' => 'MWK - Malawian kwacha',
-            'MXN' => 'MXN - Mexican peso',
-            'MYR' => 'MYR - Malaysian ringgit',
-            'MZN' => 'MZN - Mozambican metical',
-            'NAD' => 'NAD - Namibian dollar',
-            'NGN' => 'NGN - Nigerian naira',
-            'NIO' => 'NIO - Cordoba oro',
-            'NOK' => 'NOK - Norwegian krone',
-            'NPR' => 'NPR - Nepalese rupee',
-            'NZD' => 'NZD - New Zealand dollar',
-            'OMR' => 'OMR - Omani rial',
-            'PAB' => 'PAB - Panamanian balboa',
-            'PEN' => 'PEN - Peruvian nuevo sol',
-            'PGK' => 'PGK - Papua New Guinean kina',
-            'PHP' => 'PHP - Philippine peso',
-            'PKR' => 'PKR - Pakistani rupee',
-            'PLN' => 'PLN - Polish złoty',
-            'PYG' => 'PYG - Paraguayan guaraní',
-            'QAR' => 'QAR - Qatari rial',
-            'RON' => 'RON - Romanian new leu',
-            'RSD' => 'RSD - Serbian dinar',
-            'RUB' => 'RUB - Russian rouble',
-            'RWF' => 'RWF - Rwandan franc',
-            'SAR' => 'SAR - Saudi riyal',
-            'SBD' => 'SBD - Solomon Islands dollar',
-            'SCR' => 'SCR - Seychelles rupee',
-            'SDG' => 'SDG - Sudanese pound',
-            'SEK' => 'SEK - Swedish krona/kronor',
-            'SGD' => 'SGD - Singapore dollar',
-            'SHP' => 'SHP - Saint Helena pound',
-            'SLL' => 'SLL - Sierra Leonean leone',
-            'SOS' => 'SOS - Somali shilling',
-            'SRD' => 'SRD - Surinamese dollar',
-            'STD' => 'STD - São Tomé and Príncipe dobra',
-            'SYP' => 'SYP - Syrian pound',
-            'SZL' => 'SZL - Lilangeni',
-            'THB' => 'THB - Thai baht',
-            'TJS' => 'TJS - Tajikistani somoni',
-            'TMT' => 'TMT - Turkmenistani manat',
-            'TND' => 'TND - Tunisian dinar',
-            'TOP' => 'TOP - Tongan paʻanga',
-            'TRY' => 'TRY - Turkish lira',
-            'TTD' => 'TTD - Trinidad and Tobago dollar',
-            'TWD' => 'TWD - New Taiwan dollar',
-            'TZS' => 'TZS - Tanzanian shilling',
-            'UAH' => 'UAH - Ukrainian hryvnia',
-            'UGX' => 'UGX - Ugandan shilling',
-            'USD' => 'USD - United States dollar',
-            'UYU' => 'UYU - Uruguayan peso',
-            'UZS' => 'UZS - Uzbekistan som',
-            'VEF' => 'VEF - Venezuelan bolívar fuerte',
-            'VND' => 'VND - Vietnamese đồng',
-            'VUV' => 'VUV - Vanuatu vatu',
-            'WST' => 'WST - Samoan tala',
-            'XOF' => 'XOF - West African CFA franc',
-            'YER' => 'YER - Yemeni rial',
-            'ZAR' => 'ZAR - South African rand',
-            'ZMK' => 'ZMK - Zambian kwacha',
-            'ZWL' => 'ZWL - Zimbabwe dollar',
-        ];
-
-        $result = $service->getAvailableCurrencies();
-
-        $this->assertEquals($result, $availableCurrencies);
-    }
-
-    public function testRmDefaultCurrencyException()
+    public function testRmDefaultCurrencyException(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -515,10 +350,10 @@ class ServiceTest extends \BBTestCase
         $di['db'] = $db;
         $service->setDi($di);
         $this->expectException(\FOSSBilling\Exception::class);
-        $service->rm($model); // will throw \FOSSBilling\Exception because default currency can not be removed
+        $service->rm($model); // will throw \FOSSBilling\Exception because default currency cannot be removed
     }
 
-    public function testRm()
+    public function testRm(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -540,7 +375,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, null);
     }
 
-    public function testRmMissingCodeException()
+    public function testRmMissingCodeException(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -561,7 +396,7 @@ class ServiceTest extends \BBTestCase
         $service->rm($model); // will throw \FOSSBilling\Exception because currency code is not set
     }
 
-    public function testToApiArray()
+    public function testToApiArray(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -588,7 +423,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, $expected);
     }
 
-    public function testCreateCurrency()
+    public function testCreateCurrency(): void
     {
         $service = new \Box\Mod\Currency\Service();
 
@@ -624,7 +459,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, $code);
     }
 
-    public function testUpdateCurrency()
+    public function testUpdateCurrency(): void
     {
         $code = 'EUR';
         $format = '€{{price}}';
@@ -653,7 +488,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testUpdateCurrencyNotFoundException()
+    public function testUpdateCurrencyNotFoundException(): void
     {
         $code = 'EUR';
         $format = '€{{price}}';
@@ -677,7 +512,7 @@ class ServiceTest extends \BBTestCase
         $service->updateCurrency($code, $format, $title, $price_format, $conversion_rate); // Expecting \FOSSBilling\Exception every time
     }
 
-    public function testUpdateConversionRateException()
+    public function testUpdateConversionRateException(): void
     {
         $code = 'EUR';
         $format = '€{{price}}';
@@ -703,7 +538,7 @@ class ServiceTest extends \BBTestCase
         $service->updateCurrency($code, $format, $title, $price_format, $conversion_rate); // Expecting \FOSSBilling\Exception every time
     }
 
-    public function testUpdateCurrencyRates()
+    public function testUpdateCurrencyRates(): void
     {
         $model = new \Model_Currency();
         $model->loadBean(new \DummyBean());
@@ -715,7 +550,7 @@ class ServiceTest extends \BBTestCase
             ->willReturn($model);
         $service->expects($this->atLeastOnce())
             ->method('_getRate')
-            ->willReturn(random_int(1, 50) / 10);
+            ->willReturn(floatval(random_int(1, 50) / 10));
 
         $bean = new \DummyBean();
         $bean->is_default = 1;
@@ -745,7 +580,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testUpdateCurrencyRatesRateNotNumeric()
+    public function testUpdateCurrencyRatesRateNotNumeric(): void
     {
         $model = new \Model_Currency();
         $model->loadBean(new \DummyBean());
@@ -757,7 +592,7 @@ class ServiceTest extends \BBTestCase
             ->willReturn($model);
         $service->expects($this->atLeastOnce())
             ->method('_getRate')
-            ->willReturn(null);
+            ->willReturn(false);
 
         $bean = new \DummyBean();
         $bean->is_default = 0;
@@ -783,7 +618,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testDelete()
+    public function testDelete(): void
     {
         $model = new \Model_Currency();
         $model->loadBean(new \DummyBean());
@@ -818,7 +653,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testDeleteModelNotFoundException()
+    public function testDeleteModelNotFoundException(): void
     {
         $code = 'EUR';
 
@@ -834,7 +669,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testValidateCurrencyFormatPriceTagMissing()
+    public function testValidateCurrencyFormatPriceTagMissing(): void
     {
         $service = new \Box\Mod\Currency\Service();
 

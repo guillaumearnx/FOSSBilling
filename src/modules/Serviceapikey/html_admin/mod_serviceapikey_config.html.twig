@@ -4,7 +4,7 @@
         <form method="post" action="{{ 'api/admin/product/update_config'|link }}" class="api-form save" data-api-msg="{{ 'API key settings updated'|trans }}">
             <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
             <div class="mb-3 row">
-                <P>{{ 'Here you can configured the length of the API keys that will be generated. We recommend making this no less than 16 at a minimum. When in doubt, leave this at 32.'|trans }}</p>
+                <P>{{ 'Here you can configure the length of the API keys that will be generated. We recommend making this no less than 16 at a minimum. When in doubt, leave this at 32.'|trans }}</p>
                 <label class="form-label col-3 col-form-label">{{ 'Length'|trans }}:</label>
                 <div class="col">
                     <input type="number" class="form-control" name="config[length]" value="{{ product.config.length|default(32) }}">
@@ -41,7 +41,7 @@
                 <P>{{ 'Here you can configure what case you want the API keys to be generated with. "Uppercase" makes all letters uppercase, "lowercase" makes them all lowercase, and "mixed" does a combination of the two options.'|trans }}</p>
                 <label class="form-label col-3 col-form-label">{{ 'API key capitalization'|trans }}:</label>
                 <div class="col">
-                    <select class="form-select" aria-label="API key capitalization options" name="config[case]">
+                    <select class="form-select" aria-label="{{ 'API key capitalization options'|trans }}" name="config[case]">
                         <option {% if product.config.case is not defined or product.config.case == "upper" %} selected {% endif %} value="upper">{{ 'Uppercase'|trans }}</option>
                         <option {% if product.config.case == "lower" %} selected {% endif %} value="lower">{{ 'Lowercase'|trans }}</option>
                         <option {% if product.config.case == "mixed" %} selected {% endif %} value="mixed">{{ 'Mixed'|trans }}</option>

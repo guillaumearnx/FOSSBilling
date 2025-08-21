@@ -14,7 +14,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->service = new ServicePayGateway();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->service->setDi($di);
@@ -22,7 +22,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testgetSearchQuery()
+    public function testgetSearchQuery(): void
     {
         $di = new \Pimple\Container();
 
@@ -35,7 +35,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals([], $result[1]);
     }
 
-    public function testgetSearchQueryWithAdditionalParams()
+    public function testgetSearchQueryWithAdditionalParams(): void
     {
         $di = new \Pimple\Container();
 
@@ -51,7 +51,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expectedParams, $result[1]);
     }
 
-    public function testgetPairs()
+    public function testgetPairs(): void
     {
         $expected = [
             1 => 'Custom',
@@ -79,7 +79,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetAvailable()
+    public function testgetAvailable(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
         $dbMock->expects($this->atLeastOnce())
@@ -94,7 +94,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testinstallPayGateway()
+    public function testinstallPayGateway(): void
     {
         $code = 'PP';
 
@@ -125,7 +125,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testinstallGatewayNotAvailable()
+    public function testinstallGatewayNotAvailable(): void
     {
         $code = 'PP';
 
@@ -141,7 +141,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $serviceMock->install($code);
     }
 
-    public function testtoApiArray()
+    public function testtoApiArray(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -175,7 +175,7 @@ class ServicePayGatewayTest extends \BBTestCase
             'description' => null,
             'enabled' => null,
             'test_mode' => null,
-            'callback' => 'http://localhost/ipn.php?',
+            'callback' => 'https://localhost/ipn.php?',
         ];
 
         $di = new \Pimple\Container();
@@ -187,7 +187,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testcopy()
+    public function testcopy(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -212,7 +212,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testupdate()
+    public function testupdate(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -240,7 +240,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testdelete()
+    public function testdelete(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -259,7 +259,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testgetActive()
+    public function testgetActive(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -279,7 +279,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testcanPerformRecurrentPayment()
+    public function testcanPerformRecurrentPayment(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -292,7 +292,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetPaymentAdapter()
+    public function testgetPaymentAdapter(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -308,18 +308,15 @@ class ServicePayGatewayTest extends \BBTestCase
             ->method('getAdapterClassName')
             ->willReturn($expected);
 
-        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
-        $toolsMock->expects($this->atLeastOnce())
-            ->method('decodeJ')
-            ->willReturn([]);
-
         $urlMock = $this->getMockBuilder('\Box_Url')->getMock();
         $urlMock->expects($this->atLeastOnce())
             ->method('link');
 
+        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
+
         $di = new \Pimple\Container();
-        $di['tools'] = $toolsMock;
         $di['url'] = $urlMock;
+        $di['tools'] = $toolsMock;
         $serviceMock->setDi($di);
 
         $optional = [
@@ -329,7 +326,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertInstanceOf($expected, $result);
     }
 
-    public function testgetPaymentAdapterPaymentGatewayNotFound()
+    public function testgetPaymentAdapterPaymentGatewayNotFound(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -344,18 +341,15 @@ class ServicePayGatewayTest extends \BBTestCase
             ->method('getAdapterClassName')
             ->willReturn(null);
 
-        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
-        $toolsMock->expects($this->atLeastOnce())
-            ->method('decodeJ')
-            ->willReturn([]);
-
         $urlMock = $this->getMockBuilder('\Box_Url')->getMock();
         $urlMock->expects($this->atLeastOnce())
             ->method('link');
 
+        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
+
         $di = new \Pimple\Container();
-        $di['tools'] = $toolsMock;
         $di['url'] = $urlMock;
+        $di['tools'] = $toolsMock;
         $serviceMock->setDi($di);
 
         $this->expectException(\FOSSBilling\Exception::class);
@@ -363,7 +357,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $serviceMock->getPaymentAdapter($payGatewayModel, $invoiceModel);
     }
 
-    public function testgetAdapterConfig()
+    public function testgetAdapterConfig(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -382,7 +376,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetAdapterConfigClassDoesNotExists()
+    public function testgetAdapterConfigClassDoesNotExists(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -402,7 +396,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $serviceMock->getAdapterConfig($payGatewayModel);
     }
 
-    public function testgetAdapterConfigAdapterDoesNotExists()
+    public function testgetAdapterConfigAdapterDoesNotExists(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -420,7 +414,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $serviceMock->getAdapterConfig($payGatewayModel);
     }
 
-    public function testgetAdapterClassName()
+    public function testgetAdapterClassName(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -433,7 +427,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testgetAcceptedCurrencies()
+    public function testgetAcceptedCurrencies(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -443,7 +437,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetFormElements()
+    public function testgetFormElements(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -460,7 +454,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetFormElementsEmptyFormConfig()
+    public function testgetFormElementsEmptyFormConfig(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -479,7 +473,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertEquals($emptyArray, $result);
     }
 
-    public function testgetDescription()
+    public function testgetDescription(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());
@@ -496,7 +490,7 @@ class ServicePayGatewayTest extends \BBTestCase
         $this->assertIsString($result);
     }
 
-    public function testgetDescriptionEmptyDescription()
+    public function testgetDescriptionEmptyDescription(): void
     {
         $payGatewayModel = new \Model_PayGateway();
         $payGatewayModel->loadBean(new \DummyBean());

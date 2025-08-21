@@ -115,7 +115,7 @@
                         {% endif %}
                         <tr>
                             <td class="text-end">IP:</td>
-                            <td>{{ client.ip|default('-') }} {{ client.ip|ipcountryname|default('Unknown') }}</td>
+                            <td>{%if client.ip %}{{ client.ip|iplookup }}{% else %}{{ 'Unknown'|trans }}{% endif %}</td>
                         </tr>
                         <tr>
                             <td class="text-end">{{ 'API Key'|trans }}:</td>
@@ -210,7 +210,7 @@
                     <div class="mb-3 row">
                         <label class="form-label col-3 col-form-label">{{ 'Group'|trans }}:</label>
                         <div class="col">
-                            {{ mf.selectbox('group_id', admin.client_group_get_pairs, client.group_id, 0, 'Select group') }}
+                            {{ mf.selectbox('group_id', admin.client_group_get_pairs, client.group_id, 0, 'Select group'|trans) }}
                         </div>
                     </div>
                     <div class="mb-3 row">
@@ -294,7 +294,7 @@
                     <div class="mb-3 row">
                         <label class="form-label col-3 col-form-label">{{ 'Country'|trans }}:</label>
                         <div class="col">
-                            {{ mf.selectbox('country', guest.system_countries, client.country, 0, 'Select country') }}
+                            {{ mf.selectbox('country', guest.system_countries, client.country, 0, 'Select country'|trans) }}
                         </div>
                     </div>
                     <div class="mb-3 row">
@@ -345,7 +345,7 @@
                     <div class="mb-3 row">
                         <label class="form-label col-3 col-form-label">{{ 'Currency'|trans }}:</label>
                         <div class="col">
-                            {{ mf.selectbox('currency', guest.currency_get_pairs, client.currency, 0, 'Select currency') }}
+                            {{ mf.selectbox('currency', guest.currency_get_pairs, client.currency, 0, 'Select currency'|trans) }}
                         </div>
                     </div>
                     <div class="mb-3 row">
@@ -724,7 +724,7 @@
 
         <div class="tab-pane fade" id="tab-history" role="tabpanel" aria-labelledby="history-tab">
             <div class="card-body">
-                <h5>{{ 'Logins history'|trans }}</h5>
+                <h5>{{ 'Login history'|trans }}</h5>
             </div>
 
             <div class="table-responsive">
@@ -741,8 +741,8 @@
                         {% set logins = admin.client_login_history_get_list({ 'per_page': 10, 'page': request.page, 'client_id': client.id }) %}
                         {% for i, login in logins.list %}
                         <tr>
-                            <td>{{ login.ip }}</td>
-                            <td>{{ login.ip|ipcountryname|default('Unknown') }}</td>
+                            <td>{{ login.ip|iplookup }}</td>
+                            <td>{{ login.ip|ipcountryname|default('Unknown'|trans) }}</td>
                             <td>{{ login.created_at|format_datetime }}</td>
                         </tr>
                         {% else %}
@@ -794,7 +794,7 @@
                     </tbody>
                 </table>
             </div>
-            {% include 'partial_pagination.html.twig' with { 'list': emails } %}
+            {{ include('partial_pagination.html.twig', { 'list': emails }) }}
         </div>
 
         <div class="tab-pane fade" id="tab-transactions" role="tabpanel" aria-labelledby="transactions-tab">

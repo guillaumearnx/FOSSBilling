@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -9,6 +10,8 @@
  */
 
 namespace Box\Mod\Support;
+
+use FOSSBilling\InformationException;
 
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
@@ -218,13 +221,11 @@ class Service implements \FOSSBilling\InjectionAwareInterface
      */
     public function getStatuses()
     {
-        $data = [
+        return [
             \Model_SupportTicket::OPENED => 'Open',
             \Model_SupportTicket::ONHOLD => 'On hold',
             \Model_SupportTicket::CLOSED => 'Closed',
         ];
-
-        return $data;
     }
 
     /**
@@ -482,7 +483,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return (bool) $helpdesk->can_reopen;
     }
 
-    private function _getRelDetails(\Model_SupportTicket $model)
+    /**
+     * @return mixed[]
+     */
+    private function _getRelDetails(\Model_SupportTicket $model): array
     {
         if (!$model->rel_type || !$model->rel_id) {
             return [];
@@ -648,7 +652,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
         $tickets = $this->di['db']->find('SupportTicket', 'support_helpdesk_id = :support_helpdesk_id', [':support_helpdesk_id' => $model->id]);
         if ((is_countable($tickets) ? count($tickets) : 0) > 0) {
-            throw new \FOSSBilling\InformationException('Can not remove helpdesk which has tickets');
+            throw new InformationException('Cannot remove helpdesk which has tickets');
         }
         $this->di['db']->trash($model);
         $this->di['logger']->info('Deleted helpdesk #%s', $id);
@@ -744,7 +748,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             $msg->client_id = $identity->id;
         }
         $msg->content = $content;
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $msgId = $this->di['db']->store($msg);
@@ -788,7 +792,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $msg->admin_id = $identity->id;
         $msg->support_ticket_id = $ticketId;
         $msg->content = $data['content'];
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($msg);
@@ -802,10 +806,17 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
     public function ticketCreateForGuest($data)
     {
+        $extensionService = $this->di['mod_service']('extension');
+        $config = $extensionService->getConfig('mod_support');
+
+        if (isset($config['disable_public_tickets']) && $config['disable_public_tickets']) {
+            throw new InformationException("We currently aren't accepting support tickets from unregistered users. Please use another contact method.");
+        }
+
         $data['email'] = $this->di['tools']->validateAndSanitizeEmail($data['email']);
 
         $event_params = $data;
-        $event_params['ip'] = $this->di['request']->getClientAddress();
+        $event_params['ip'] = $this->di['request']->getClientIp();
         $altered = $this->di['events_manager']->fire(['event' => 'onBeforeGuestPublicTicketOpen', 'params' => $event_params]);
 
         $status = 'open';
@@ -831,7 +842,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $msg = $this->di['db']->dispense('SupportPTicketMessage');
         $msg->support_p_ticket_id = $ticket->id;
         $msg->content = $message;
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($msg);
@@ -855,7 +866,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $timeSinceLast = round(abs(strtotime($lastTicket->created_at) - strtotime(date('Y-m-d H:i:s'))) / 3600, 0);
 
         if ($timeSinceLast < $hours) {
-            throw new \FOSSBilling\InformationException(sprintf('You can submit one ticket per %s hours. %s hours left', $hours, $hours - $timeSinceLast));
+            throw new InformationException(sprintf('You can submit one ticket per %s hours. %s hours left', $hours, $hours - $timeSinceLast));
         }
 
         return true;
@@ -867,20 +878,20 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $rel_id = $data['rel_id'] ?? null;
         $rel_type = $data['rel_type'] ?? null;
 
-        if (!is_null($rel_id) && $rel_type == \Model_SupportTicket::REL_TYPE_ORDER) {
-            $orderService = $this->di['mod_service']('order');
-            $o = $orderService->findForClientById($client, $rel_id);
-            if (!$o instanceof \Model_ClientOrder) {
-                throw new \FOSSBilling\Exception('Order ID does not exist');
-            }
-        }
-
         $rel_task = $data['rel_task'] ?? null;
         $rel_new_value = $data['rel_new_value'] ?? null;
         $rel_status = isset($data['rel_task']) ? \Model_SupportTicket::REL_STATUS_PENDING : \Model_SupportTicket::REL_STATUS_COMPLETE;
 
         if ($rel_task == 'upgrade') {
-            if (empty($o) || empty($rel_new_value)) {
+            if (!is_null($rel_id) && $rel_type == \Model_SupportTicket::REL_TYPE_ORDER) {
+                $orderService = $this->di['mod_service']('order');
+                $o = $orderService->findForClientById($client, $rel_id);
+                if (!$o instanceof \Model_ClientOrder) {
+                    throw new \FOSSBilling\Exception('Order ID does not exist');
+                }
+            }
+
+            if (!isset($o) || empty($rel_new_value)) {
                 throw new \FOSSBilling\Exception('You must provide both an order ID and a new product ID in order to request an upgrade.');
             }
 
@@ -889,13 +900,13 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             if (!in_array($rel_new_value, $allowedUpgrades)) {
                 $upgrade = $this->di['db']->getExistingModelById('Product', $rel_new_value);
 
-                throw new \FOSSBilling\InformationException('Sorry, but ":product" is not allowed to be upgraded to ":upgrade"', [':product' => $product->title, ':upgrade' => $upgrade->title ?? 'unknown']);
+                throw new InformationException('Sorry, but ":product" is not allowed to be upgraded to ":upgrade"', [':product' => $product->title, ':upgrade' => $upgrade->title ?? 'unknown']);
             }
         }
 
         // check if support ticket with same uncompleted task already exists
         if ($rel_id && $rel_type && $rel_task && $this->checkIfTaskAlreadyExists($client, $rel_id, $rel_type, $rel_task)) {
-            throw new \FOSSBilling\InformationException('We have already received this request.');
+            throw new InformationException('We have already received this request.');
         }
 
         $mod = $this->di['mod']('support');
@@ -973,7 +984,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             throw new \FOSSBilling\Exception('Identity is invalid');
         }
         $msg->content = $content;
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
 
@@ -982,13 +993,11 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
     public function publicGetStatuses()
     {
-        $data = [
+        return [
             \Model_SupportPTicket::OPENED => 'Open',
             \Model_SupportPTicket::ONHOLD => 'On hold',
             \Model_SupportPTicket::CLOSED => 'Closed',
         ];
-
-        return $data;
     }
 
     public function publicFindOneByHash($hash)
@@ -1112,9 +1121,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             ':status' => \Model_SupportPTicket::ONHOLD,
         ];
 
-        $publicTicket = $this->di['db']->find('SupportPTicket', 'status = :status AND DATE_ADD(updated_at, INTERVAL 48 HOUR) < NOW() ORDER BY id ASC', $bindings);
-
-        return $publicTicket;
+        return $this->di['db']->find('SupportPTicket', 'status = :status AND DATE_ADD(updated_at, INTERVAL 48 HOUR) < NOW() ORDER BY id ASC', $bindings);
     }
 
     public function publicCloseTicket(\Model_SupportPTicket $model, $identity)
@@ -1233,7 +1240,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $msg->support_p_ticket_id = $ticketId;
         $msg->admin_id = $identity->id;
         $msg->content = $data['message'];
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($msg);
@@ -1263,7 +1270,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $msg->support_p_ticket_id = $ticket->id;
         $msg->admin_id = $identity->id;
         $msg->content = $content;
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $messageId = $this->di['db']->store($msg);
@@ -1284,7 +1291,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $msg = $this->di['db']->dispense('SupportPTicketMessage');
         $msg->support_p_ticket_id = $ticket->id;
         $msg->content = $message;
-        $msg->ip = $this->di['request']->getClientAddress();
+        $msg->ip = $this->di['request']->getClientIp();
         $msg->created_at = date('Y-m-d H:i:s');
         $msg->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($msg);
@@ -1359,7 +1366,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return [$query, $bindings];
     }
 
-    public function cannedGetGroupedPairs()
+    /**
+     * @return non-empty-array[]
+     */
+    public function cannedGetGroupedPairs(): array
     {
         $query = 'SELECT sp.title as r_title, spc.title as c_title FROM support_pr sp
                 LEFT JOIN support_pr_category spc
@@ -1502,8 +1512,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     }
 
     /*
-    * Knowledge Base Functions.
-    */
+     * Knowledge Base Functions.
+     */
 
     public function kbEnabled()
     {
@@ -1540,7 +1550,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
         $sql .= ' ORDER BY kb_article_category_id DESC, views DESC';
 
-        return $this->di['pager']->getSimpleResultSet($sql, $filter, $per_page, $page);
+        return $this->di['pager']->getPaginatedResultSet($sql, $filter, $per_page, $page);
     }
 
     public function kbFindActiveArticleById($id)
@@ -1578,10 +1588,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     {
         $id = $model->id;
         $this->di['db']->trash($model);
-        $this->di['logger']->info('Deleted knowledge base article #%s', $id);
+        $this->di['logger']->info('Deleted Knowledge Base article #%s', $id);
     }
 
-    public function kbToApiArray(\Model_SupportKbArticle $model, $deep = false, $identity = null)
+    public function kbToApiArray(\Model_SupportKbArticle $model, $deep = false, $identity = null): array
     {
         $data = [
             'id' => $model->id,
@@ -1593,7 +1603,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             'updated_at' => $model->updated_at,
         ];
 
-        $cat = $this->di['db']->getExistingModelById('SupportKbArticleCategory', $model->kb_article_category_id, 'Knowledge base category not found');
+        $cat = $this->di['db']->getExistingModelById('SupportKbArticleCategory', $model->kb_article_category_id, 'Knowledge Base category not found');
         $data['category'] = [
             'id' => $cat->id,
             'slug' => $cat->slug,
@@ -1702,7 +1712,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             $sql = $sql . ' WHERE ' . implode(' AND ', $where);
         }
 
-        $sql .= ' GROUP BY kac.id ORDER BY kac.id DESC';
+        $sql .= ' GROUP BY kac.id ORDER BY kac.title';
 
         return [$sql, $bindings];
     }
@@ -1721,9 +1731,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
     public function kbCategoryGetPairs()
     {
         $sql = 'SELECT id, title FROM support_kb_article_category';
-        $pairs = $this->di['db']->getAssoc($sql);
 
-        return $pairs;
+        return $this->di['db']->getAssoc($sql);
     }
 
     public function kbCategoryRm(\Model_SupportKbArticleCategory $model)
@@ -1735,7 +1744,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         $articlesCount = $this->di['db']->getCell('SELECT count(*) as cnt FROM support_kb_article WHERE kb_article_category_id = :kb_article_category_id', $bindings);
 
         if ($articlesCount > 0) {
-            throw new \FOSSBilling\InformationException('Can not remove category which has articles');
+            throw new InformationException('Cannot remove category which has articles');
         }
 
         $id = $model->id;
@@ -1761,11 +1770,13 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         if ($query) {
-            $sql .= 'AND (title LIKE :title OR content LIKE :content)';
+            $sql .= ' AND (title LIKE :title OR content LIKE :content)';
             $query = "%$query%";
             $bindings[':content'] = $query;
             $bindings[':title'] = $query;
         }
+
+        $sql .= ' ORDER BY title';
 
         $articles = $this->di['db']->find('SupportKbArticle', $sql, $bindings);
 
@@ -1813,14 +1824,14 @@ class Service implements \FOSSBilling\InjectionAwareInterface
 
         $this->di['db']->store($model);
 
-        $this->di['logger']->info('Updated knowledge base category #%s', $model->id);
+        $this->di['logger']->info('Updated Knowledge Base category #%s', $model->id);
 
         return true;
     }
 
     public function kbFindCategoryById($id)
     {
-        return $this->di['db']->getExistingModelById('SupportKbArticleCategory', $id, 'Knowledge base category not found');
+        return $this->di['db']->getExistingModelById('SupportKbArticleCategory', $id, 'Knowledge Base category not found');
     }
 
     public function kbFindCategoryBySlug($slug)

@@ -2,17 +2,19 @@
 
 {% import 'macro_functions.html.twig' as mf %}
 
-{% block meta_title %}System activity{% endblock %}
+{% block meta_title %}{{ 'System activity'|trans }}{% endblock %}
 
 {% set active_menu = 'activity' %}
 
 {% block content %}
 <div class="card overflow-auto">
-    <div class="card-body">
-        <h5>{{ 'System activity'|trans }}</h5>
+    <div class="card-header">
+        <h3 class="card-title">{{ 'System activity'|trans }}</h3>
+        <div class="card-actions">
+            {{ include('partial_search_action.html.twig') }}
+        </div>
     </div>
 
-    {% include 'partial_search.html.twig' %}
     <table class="table card-table table-vcenter table-striped text-nowrap sortable">
         <thead>
             <tr>
@@ -58,8 +60,8 @@
                 {% endif %}
             </td>
             <td>{{ event.message }}</td>
-            <td>{{ event.ip }}</td>
-            <td>{{ event.ip|ipcountryname|default('Unknown') }}</td>
+            <td>{{ event.ip|iplookup }}</td>
+            <td>{{ event.ip|ipcountryname|default('Unknown'|trans) }}</td>
             <td>{{ event.created_at|format_datetime }}</td>
             <td>
                 <a class="btn btn-icon api-link"
@@ -81,8 +83,8 @@
     </table>
 
     <div class="card-footer d-flex align-items-center justify-content-between">
-        {% include 'partial_batch_delete.html.twig' with { 'action': 'admin/activity/batch_delete' } %}
-        {% include 'partial_pagination.html.twig' with { 'list': events, 'url': 'activity' } %}
+        {{ include('partial_batch_delete.html.twig', { 'action': 'admin/activity/batch_delete' }) }}
+        {{ include('partial_pagination.html.twig', { 'list': events, 'url': 'activity' }) }}
     </div>
 </div>
 {% endblock %}

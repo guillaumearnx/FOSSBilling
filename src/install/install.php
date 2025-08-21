@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -12,6 +13,9 @@
 use Box\Mod\Email\Service;
 use FOSSBilling\Environment;
 use Ramsey\Uuid\Uuid;
+use Symfony\Component\Filesystem\Exception\IOException;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\HttpClient\HttpClient;
 use Twig\Loader\FilesystemLoader;
 
@@ -21,27 +25,40 @@ ini_set('display_errors', 0);
 ini_set('display_startup_errors', 1);
 ini_set('log_errors', '1');
 ini_set('error_log', 'php_error.log');
+
+// Define required paths.
 define('PATH_ROOT', dirname(__DIR__));
-const PATH_LIBRARY = PATH_ROOT . DIRECTORY_SEPARATOR . 'library';
-const PATH_VENDOR = PATH_ROOT . DIRECTORY_SEPARATOR . 'vendor';
-const PATH_INSTALL_THEMES = PATH_ROOT . DIRECTORY_SEPARATOR . 'install';
-const PATH_THEMES = PATH_ROOT . DIRECTORY_SEPARATOR . 'themes';
-const PATH_LICENSE = PATH_ROOT . DIRECTORY_SEPARATOR . 'LICENSE';
-const PATH_SQL = PATH_ROOT . DIRECTORY_SEPARATOR . 'install/sql/structure.sql';
-const PATH_SQL_DATA = PATH_ROOT . DIRECTORY_SEPARATOR . 'install/sql/content.sql';
-const PATH_INSTALL = PATH_ROOT . DIRECTORY_SEPARATOR . 'install';
-const PATH_CONFIG = PATH_ROOT . DIRECTORY_SEPARATOR . 'config.php';
-const PATH_CONFIG_SAMPLE = PATH_ROOT . DIRECTORY_SEPARATOR . 'config-sample.php';
-const PATH_CRON = PATH_ROOT . DIRECTORY_SEPARATOR . 'cron.php';
-const PATH_LANGS = PATH_ROOT . DIRECTORY_SEPARATOR . 'locale';
-const PATH_MODS = PATH_ROOT . DIRECTORY_SEPARATOR . 'modules';
-const PATH_CACHE = PATH_ROOT . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'cache';
-const PATH_LOG = PATH_ROOT . DIRECTORY_SEPARATOR . 'data' . DIRECTORY_SEPARATOR . 'log';
-const HURAGA_CONFIG = PATH_THEMES . DIRECTORY_SEPARATOR . 'huraga' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'settings_data.json';
-const HURAGA_CONFIG_TEMPLATE = PATH_THEMES . DIRECTORY_SEPARATOR . 'huraga' . DIRECTORY_SEPARATOR . 'config' . DIRECTORY_SEPARATOR . 'settings_data.json.example';
-const PATH_HTACCESS = PATH_ROOT . DIRECTORY_SEPARATOR . '.htaccess';
-const PAGE_INSTALL = './assets/install.html.twig';
-const PAGE_RESULT = './assets/result.html.twig';
+define('PATH_LIBRARY', PATH_ROOT . DIRECTORY_SEPARATOR . 'library');
+define('PATH_VENDOR', PATH_ROOT . DIRECTORY_SEPARATOR . 'vendor');
+
+// Set the default include path to include the library directory.
+set_include_path(get_include_path() . PATH_SEPARATOR . PATH_LIBRARY);
+
+// Check vendor folder exists and load Composer autoloader.
+if (!file_exists(PATH_VENDOR)) {
+    throw new Exception('The composer packages are missing.', 1);
+}
+require PATH_VENDOR . DIRECTORY_SEPARATOR . 'autoload.php';
+
+// Define global paths.
+define('PATH_INSTALL_THEMES', Path::join(PATH_ROOT, 'install'));
+define('PATH_THEMES', Path::join(PATH_ROOT, 'themes'));
+define('PATH_LICENSE', Path::join(PATH_ROOT, 'LICENSE'));
+define('PATH_SQL', Path::join(PATH_ROOT, 'install', 'sql', 'structure.sql'));
+define('PATH_SQL_DATA', Path::join(PATH_ROOT, 'install', 'sql', 'content.sql'));
+define('PATH_INSTALL', Path::join(PATH_ROOT, 'install'));
+define('PATH_CONFIG', Path::join(PATH_ROOT, 'config.php'));
+define('PATH_CONFIG_SAMPLE', Path::join(PATH_ROOT, 'config-sample.php'));
+define('PATH_CRON', Path::join(PATH_ROOT, 'cron.php'));
+define('PATH_LANGS', Path::join(PATH_ROOT, 'locale'));
+define('PATH_MODS', Path::join(PATH_ROOT, 'modules'));
+define('PATH_CACHE', Path::join(PATH_ROOT, 'data', 'cache'));
+define('PATH_LOG', Path::join(PATH_ROOT, 'data', 'log'));
+define('HURAGA_CONFIG', Path::join(PATH_THEMES, 'huraga', 'config', 'settings_data.json'));
+define('HURAGA_CONFIG_TEMPLATE', Path::join(PATH_THEMES, 'huraga', 'config', 'settings_data.json.example'));
+define('PATH_HTACCESS', Path::join(PATH_ROOT, '.htaccess'));
+define('PAGE_INSTALL', Path::join('./assets', 'install.html.twig'));
+define('PAGE_RESULT', Path::join('./assets', 'result.html.twig'));
 
 // Some functions and classes reference this, so we define it here to avoid errors.
 const DEBUG = false;
@@ -52,16 +69,15 @@ set_include_path(implode(PATH_SEPARATOR, [
     get_include_path(),
 ]));
 
-// Load autoloader
-require PATH_VENDOR . DIRECTORY_SEPARATOR . 'autoload.php';
-include PATH_LIBRARY . DIRECTORY_SEPARATOR . 'FOSSBilling' . DIRECTORY_SEPARATOR . 'Autoloader.php';
-
-// Build the environment
+// Set up custom autoloader.
+require Path::join(PATH_LIBRARY, 'FOSSBilling', 'Autoloader.php');
 $loader = new FOSSBilling\AutoLoader();
 $loader->register();
+
+// Check whether using HTTPS or HTTP.
 $protocol = FOSSBilling\Tools::isHTTPS() ? 'https' : 'http';
 
-// Detect if FOSSBilling is behind a proxy server
+// Detect if FOSSBilling is behind a proxy server.
 if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
     $host = $_SERVER['HTTP_X_FORWARDED_HOST'];
 } else {
@@ -69,7 +85,7 @@ if (!empty($_SERVER['HTTP_X_FORWARDED_HOST'])) {
 }
 
 $url = $protocol . '://' . $host . $_SERVER['REQUEST_URI'];
-$current_url = pathinfo($url, PATHINFO_DIRNAME);
+$current_url = Path::getDirectory($url);
 $root_url = str_replace('/install', '', $current_url) . '/';
 define('SYSTEM_URL', $root_url);
 const URL_INSTALL = SYSTEM_URL . 'install/';
@@ -89,11 +105,26 @@ final class FOSSBilling_Installer
 {
     private readonly Session $session;
     private PDO $pdo;
+    private bool $isDebug = false;
+    private readonly Filesystem $filesystem;
 
     public function __construct()
     {
         require_once 'session.php';
         $this->session = new Session();
+        $this->filesystem = new Filesystem();
+
+        if (!$this->isDebug && $this->filesystem->exists(PATH_CONFIG)) {
+            $config = require PATH_CONFIG;
+            $this->isDebug = $config['debug_and_monitoring']['debug'] || !Environment::isProduction();
+        }
+
+        if (getenv('IS_DDEV') === 'true' && ($_GET['a'] ?? 'index') === 'index') {
+            $this->session->set('database_hostname', 'db');
+            $this->session->set('database_name', 'db');
+            $this->session->set('database_username', 'db');
+            $this->session->set('database_password', 'db');
+        }
     }
 
     /**
@@ -114,7 +145,7 @@ final class FOSSBilling_Installer
                 // Installer validation
                 try {
                     // Make sure we are not already installed. Prevents tampered requests from being able to trigger the installer.
-                    if ($this->isAlreadyInstalled()) {
+                    if (!$this->isDebug && $this->isAlreadyInstalled()) {
                         throw new Exception('FOSSBilling is already installed.');
                     }
 
@@ -142,7 +173,7 @@ final class FOSSBilling_Installer
 
                     $this->validateAdmin();
 
-                    // Setup default currency
+                    // Set up default currency
                     $this->session->set('currency_code', $_POST['currency_code']);
                     $this->session->set('currency_title', $_POST['currency_title']);
                     $this->session->set('currency_format', $_POST['currency_format'] ?? '${{price}}');
@@ -165,9 +196,8 @@ final class FOSSBilling_Installer
                     // Try to remove install folder
                     try {
                         // Delete install directory only if debug mode is NOT enabled.
-                        $config = require PATH_CONFIG;
-                        if (!$config['debug_and_monitoring']['debug']) {
-                            unlink(__DIR__ . DIRECTORY_SEPARATOR . 'install.php');
+                        if (!$this->isDebug) {
+                            $this->filesystem->remove(Path::normalize(__DIR__ . '/install.php'));
                         }
                     } catch (Exception) {
                         // Do nothing and fail silently. New warnings are presented on the installation completed page for a leftover install directory.
@@ -208,7 +238,7 @@ final class FOSSBilling_Installer
                     'config_file_path' => PATH_CONFIG,
                     'live_site' => SYSTEM_URL,
                     'admin_site' => URL_ADMIN,
-                    'domain' => pathinfo(SYSTEM_URL, PATHINFO_BASENAME),
+                    'domain' => SYSTEM_URL,
                 ];
                 echo $this->render(PAGE_INSTALL, $vars);
 
@@ -251,7 +281,6 @@ final class FOSSBilling_Installer
             $this->session->get('database_username'),
             $this->session->get('database_password'),
             [
-                PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => true,
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
             ]
@@ -322,7 +351,7 @@ final class FOSSBilling_Installer
      */
     public function isAlreadyInstalled(): bool
     {
-        return file_exists(PATH_CONFIG) ? true : false;
+        return !$this->isDebug && $this->filesystem->exists(PATH_CONFIG) ? true : false;
     }
 
     /**
@@ -331,8 +360,8 @@ final class FOSSBilling_Installer
     private function install(): bool
     {
         // Load database structure
-        $sql = file_get_contents(PATH_SQL);
-        $sql_content = file_get_contents(PATH_SQL_DATA);
+        $sql = $this->filesystem->readFile(PATH_SQL);
+        $sql_content = $this->filesystem->readFile(PATH_SQL_DATA);
         if (!$sql || !$sql_content) {
             throw new Exception('Could not read structure.sql file');
         }
@@ -340,7 +369,7 @@ final class FOSSBilling_Installer
         // Read content, parse queries into an array, then loop and execute each query
         $sql .= $sql_content;
         $sql = preg_split('/\;[\r]*\n/ism', $sql);
-        $sql = array_map('trim', $sql);
+        $sql = array_map(trim(...), $sql);
         foreach ($sql as $query) {
             if (!trim($query)) {
                 continue;
@@ -349,7 +378,7 @@ final class FOSSBilling_Installer
         }
 
         // Create default administrator
-        $passwordObject = new Box_Password();
+        $passwordObject = new FOSSBilling\PasswordManager();
         $stmt = $this->pdo->prepare("INSERT INTO admin (role, name, email, pass, protected, created_at, updated_at, api_token) VALUES('admin', :admin_name, :admin_email, :admin_password, 1, NOW(), NOW(), :api_token);");
         $stmt->execute([
             'admin_name' => $this->session->get('admin_name'),
@@ -375,16 +404,16 @@ final class FOSSBilling_Installer
         ]);
 
         // Copy config templates when applicable
-        if (!file_exists(HURAGA_CONFIG) && file_exists(HURAGA_CONFIG_TEMPLATE)) {
-            copy(HURAGA_CONFIG_TEMPLATE, HURAGA_CONFIG); // Copy the file instead of renaming it. This allows local dev instances to not need to restore the original file manually.
+        if (!$this->filesystem->exists(HURAGA_CONFIG) && $this->filesystem->exists(HURAGA_CONFIG_TEMPLATE)) {
+            $this->filesystem->copy(HURAGA_CONFIG_TEMPLATE, HURAGA_CONFIG); // Copy the file instead of renaming it. This allows local dev instances to not need to restore the original file manually.
         }
 
         // If .htaccess doesn't exist, fetch the latest from GitHub.
-        if (!file_exists(PATH_HTACCESS)) {
+        if (!$this->filesystem->exists(PATH_HTACCESS)) {
             try {
                 $client = HttpClient::create();
                 $response = $client->request('GET', 'https://raw.githubusercontent.com/FOSSBilling/FOSSBilling/main/src/.htaccess');
-                file_put_contents(PATH_HTACCESS, $response->getContent());
+                $this->filesystem->dumpFile(PATH_HTACCESS, $response->getContent());
             } catch (Exception $e) {
                 throw new Exception('Unable to write required .htaccess file to ' . PATH_HTACCESS . '. Check file and folder permissions.', $e->getCode());
             }
@@ -392,7 +421,10 @@ final class FOSSBilling_Installer
 
         // Create the configuration file
         $output = $this->getConfigOutput();
-        if (!file_put_contents(PATH_CONFIG, $output)) {
+
+        try {
+            $this->filesystem->dumpFile(PATH_CONFIG, $output);
+        } catch (IOException) {
             throw new Exception('Configuration file is not writable or does not exist. Please create the file at ' . PATH_CONFIG . ' and make it writable', 101);
         }
 
@@ -413,10 +445,11 @@ final class FOSSBilling_Installer
         // Handle dynamic configs
         $data['security']['force_https'] = FOSSBilling\Tools::isHTTPS();
         $data['debug_and_monitoring']['report_errors'] = (bool) $this->session->get('error_reporting');
+        $data['debug_and_monitoring']['debug'] = $this->isDebug;
         $data['update_branch'] = $updateBranch;
         $data['info']['instance_id'] = Uuid::uuid4()->toString();
-        $data['url'] = SYSTEM_URL;
-        $data['path_data'] = PATH_ROOT . DIRECTORY_SEPARATOR . 'data';
+        $data['url'] = str_replace(['https://', 'http://'], '', SYSTEM_URL);
+        $data['path_data'] = Path::join(PATH_ROOT, 'data');
         $data['db'] = [
             'type' => 'mysql',
             'host' => $this->session->get('database_hostname'),
@@ -426,12 +459,12 @@ final class FOSSBilling_Installer
             'password' => $this->session->get('database_password'),
         ];
         $data['twig']['cache'] = PATH_CACHE;
+        $data['disable_auto_cron'] = !FOSSBilling\Version::isPreviewVersion() && !Environment::isDevelopment();
 
         // Build and return data
         $output = '<?php ' . PHP_EOL;
-        $output .= 'return ' . var_export($data, true) . ';';
 
-        return $output;
+        return $output . ('return ' . var_export($data, true) . ';');
     }
 
     /**
@@ -440,7 +473,7 @@ final class FOSSBilling_Installer
     private function generateEmailTemplates(): bool
     {
         $emailService = new Service();
-        $di = include PATH_ROOT . DIRECTORY_SEPARATOR . 'di.php';
+        $di = include Path::join(PATH_ROOT, 'di.php');
         $di['translate']();
         $emailService->setDi($di);
 

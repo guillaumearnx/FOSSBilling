@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -68,7 +70,7 @@ class Service implements InjectionAwareInterface
         ];
     }
 
-    public function login($email, $password, $ip)
+    public function login($email, $password, $ip): array
     {
         $event_params = [];
         $event_params['email'] = $email;
@@ -129,7 +131,7 @@ class Service implements InjectionAwareInterface
         $stmt = $pdo->prepare($sql);
         $stmt->execute(['id' => $member_id]);
         $json = $stmt->fetchColumn() ?? '';
-        $permissions = json_decode($json, 1);
+        $permissions = json_decode($json, true);
         if (!$permissions) {
             return [];
         }
@@ -145,7 +147,7 @@ class Service implements InjectionAwareInterface
      * @param string|null       $key        the permission key for the associated module
      * @param mixed             $constraint if the permission key allows for multiple options, specify the one you want to use as a constraint here
      */
-    public function hasPermission(\Model_Admin|null $member, string $module, string $key = null, mixed $constraint = null): bool
+    public function hasPermission(?\Model_Admin $member, string $module, ?string $key = null, mixed $constraint = null): bool
     {
         $alwaysAllowed = ['index', 'dashboard', 'profile'];
 
@@ -161,7 +163,12 @@ class Service implements InjectionAwareInterface
         $modulePermissions = $extensionService->getSpecificModulePermissions($module);
         $permissions = $this->getPermissions($member->id);
 
-        $canAlwaysAccess = $modulePermissions['can_always_access'] ?? false;
+        if ($modulePermissions['hide_permissions'] ?? false) {
+            $canAlwaysAccess = true;
+        } else {
+            $canAlwaysAccess = $modulePermissions['can_always_access'] ?? false;
+        }
+
         if (!$canAlwaysAccess) {
             // They have no permissions or don't have any access to that module
             if (empty($permissions) || !array_key_exists($module, $permissions) || !is_array($permissions[$module]) || !($permissions[$module]['access'] ?? false)) {
@@ -169,15 +176,17 @@ class Service implements InjectionAwareInterface
             }
         }
 
-        // If this passes, the permission key isn't assigned to them and they therefore don't have permission
-        if ((!is_null($key) && !is_array($permissions[$module])) || (!is_null($key) && !array_key_exists($key, $permissions[$module]))) {
-            return false;
-        }
+        if (!is_null($key)) {
+            // If this passes, the permission key isn't assigned to them and they therefore don't have permission
+            if (!is_array($permissions[$module]) || !array_key_exists($key, $permissions[$module])) {
+                return false;
+            }
 
-        if (!is_null($key) && !is_null($constraint)) {
-            return $permissions[$module][$key] === $constraint;
-        } elseif (!is_null($key)) {
-            return (bool) $permissions[$module][$key];
+            if (!is_null($constraint)) {
+                return $permissions[$module][$key] === $constraint;
+            } else {
+                return (bool) $permissions[$module][$key];
+            }
         }
 
         return true;
@@ -190,7 +199,7 @@ class Service implements InjectionAwareInterface
      * @param string|null $key        the permission key for the associated module
      * @param mixed       $constraint if the permission key allows for multiple options, specify the one you want to use as a constraint here
      */
-    public function checkPermissionsAndThrowException(string $module, string $key = null, mixed $constraint = null): void
+    public function checkPermissionsAndThrowException(string $module, ?string $key = null, mixed $constraint = null): void
     {
         if (!$this->hasPermission(null, $module, $key, $constraint)) {
             throw new \FOSSBilling\InformationException('You do not have permission to perform this action', [], 403);
@@ -382,9 +391,9 @@ class Service implements InjectionAwareInterface
 
         $di = $this->getDi();
         $pager = $di['pager'];
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
 
-        return $pager->getSimpleResultSet($query, $params, $per_page);
+        return $pager->getPaginatedResultSet($query, $params, $per_page);
     }
 
     public function getSearchQuery($data)
@@ -454,7 +463,7 @@ class Service implements InjectionAwareInterface
         return $cron;
     }
 
-    public function toModel_AdminApiArray(\Model_Admin $model, $deep = false)
+    public function toModel_AdminApiArray(\Model_Admin $model, $deep = false): array
     {
         $data = [
             'id' => $model->id,
@@ -505,7 +514,7 @@ class Service implements InjectionAwareInterface
     public function delete(\Model_Admin $model)
     {
         if ($model->protected) {
-            throw new \FOSSBilling\InformationException('This administrator account is protected and can not be removed');
+            throw new \FOSSBilling\InformationException('This administrator account is protected and cannot be removed');
         }
 
         if ($model->role === 'admin') {
@@ -576,7 +585,7 @@ class Service implements InjectionAwareInterface
         try {
             $newId = $this->di['db']->store($model);
         } catch (\RedBeanPHP\RedException) {
-            throw new \FOSSBilling\InformationException('Staff member with email :email is already registered', [':email' => $data['email']], 788954);
+            throw new \FOSSBilling\InformationException('Staff member with email :email is already registered.', [':email' => $data['email']], 788954);
         }
 
         $this->di['events_manager']->fire(['event' => 'onAfterAdminStaffCreate', 'params' => ['id' => $newId]]);
@@ -609,7 +618,10 @@ class Service implements InjectionAwareInterface
         return $newId;
     }
 
-    public function getAdminGroupPair()
+    /**
+     * @return mixed[]
+     */
+    public function getAdminGroupPair(): array
     {
         $sql = 'SELECT id, name
                 FROM  admin_group';
@@ -651,7 +663,7 @@ class Service implements InjectionAwareInterface
         return (int) $groupId;
     }
 
-    public function toAdminGroupApiArray(\Model_AdminGroup $model, $deep = false, $identity = null)
+    public function toAdminGroupApiArray(\Model_AdminGroup $model, $deep = false, $identity = null): array
     {
         $data = [];
         $data['id'] = $model->id;
@@ -668,7 +680,7 @@ class Service implements InjectionAwareInterface
 
         $id = $model->id;
         if ($model->id == 1) {
-            throw new \FOSSBilling\InformationException('Administrators group can not be removed');
+            throw new \FOSSBilling\InformationException('Administrators group cannot be removed');
         }
 
         $sql = 'SELECT count(1)
@@ -676,7 +688,7 @@ class Service implements InjectionAwareInterface
                 WHERE admin_group_id = :id';
         $staffMembersInGroup = $this->di['db']->getCell($sql, ['id' => $model->id]);
         if ($staffMembersInGroup > 0) {
-            throw new \FOSSBilling\InformationException('Can not remove group which has staff members');
+            throw new \FOSSBilling\InformationException('Cannot remove group which has staff members');
         }
 
         $this->di['db']->trash($model);
@@ -733,7 +745,7 @@ class Service implements InjectionAwareInterface
         return [$sql, $params];
     }
 
-    public function toActivityAdminHistoryApiArray(\Model_ActivityAdminHistory $model, $deep = false)
+    public function toActivityAdminHistoryApiArray(\Model_ActivityAdminHistory $model, $deep = false): array
     {
         $result = [
             'id' => $model->id,
@@ -761,10 +773,7 @@ class Service implements InjectionAwareInterface
 
     public function authorizeAdmin($email, $plainTextPassword)
     {
-        $model = $this->di['db']->findOne('Admin', 'email = ? AND status = ?', [$email, \Model_Admin::STATUS_ACTIVE]);
-        if ($model == null) {
-            return null;
-        }
+        $model = $this->di['db']->findOne('Admin', 'email = ? AND status = ? AND role != ?', [$email, \Model_Admin::STATUS_ACTIVE, \Model_Admin::ROLE_CRON]);
 
         return $this->di['auth']->authorizeUser($model, $plainTextPassword);
     }

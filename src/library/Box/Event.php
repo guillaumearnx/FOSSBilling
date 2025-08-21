@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -136,7 +138,7 @@ class Box_Event implements ArrayAccess, FOSSBilling\InjectionAwareInterface
     public function offsetGet(mixed $name): mixed
     {
         if (!array_key_exists($name, $this->parameters)) {
-            throw new InvalidArgumentException(sprintf('The event "%s" has no "%s" parameter.', $this->name, $name));
+            throw new InvalidArgumentException("The event '{$this->name}' has no '{$name}' parameter.");
         }
 
         return $this->parameters[$name];
@@ -155,11 +157,12 @@ class Box_Event implements ArrayAccess, FOSSBilling\InjectionAwareInterface
 
     /**
      * Removes a parameter (implements the ArrayAccess interface).
+     * (doesn't actually remove anything).
      *
      * @param string $name The parameter name
      */
     public function offsetUnset(mixed $name): void
     {
-        unset($this->parameters[$name]);
+        return;
     }
 }

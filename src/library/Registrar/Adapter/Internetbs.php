@@ -32,31 +32,17 @@ class Registrar_Adapter_Internetbs extends Registrar_AdapterAbstract
             'label' => 'Manages domains on Internetbs via API',
             'form' => [
                 'apikey' => ['text', [
-                            'label' => 'Internetbs API key',
-                            'description' => 'Internetbs API key',
-                    ],
-                 ],
+                    'label' => 'Internetbs API key',
+                    'description' => 'Internetbs API key',
+                ],
+                ],
                 'password' => ['password', [
-                            'label' => 'Internetbs API password',
-                            'description' => 'Internetbs API password',
-                            'renderPassword' => true,
-                    ],
-                 ],
+                    'label' => 'Internetbs API password',
+                    'description' => 'Internetbs API password',
+                    'renderPassword' => true,
+                ],
+                ],
             ],
-        ];
-    }
-
-    public function getTlds()
-    {
-        return [
-            '.co', '.com', '.net', '.eu',
-            '.org', '.it', '.fr', '.info',
-            '.tel', '.us', '.biz', '.co.uk',
-            '.in', '.mobi', '.asia', '.tv',
-            '.re', '.be', '.cc', '.com.fr',
-            '.com.re', '.org.uk', '.me.uk', '.com.co',
-            '.net.co', '.nom.co', '.co.in', '.net.in',
-            '.org.in', '.firm.in', '.gen.in', '.ind.in',
         ];
     }
 
@@ -71,9 +57,17 @@ class Registrar_Adapter_Internetbs extends Registrar_AdapterAbstract
         return $result['status'] == 'AVAILABLE';
     }
 
-    public function isDomaincanBeTransferred(Registrar_Domain $domain): never
+    public function isDomaincanBeTransferred(Registrar_Domain $domain)
     {
-        throw new Registrar_Exception(':type: does not support :action:', [':type:' => 'Internet.bs', ':action:' => __trans('checking domain transferability')]);
+        $params = [
+            'domain' => $domain->getName(),
+        ];
+
+        $result = $this->_process('/Domain/Check', $params);
+
+        // return true if status is UNAVAILABLE
+        // For not supported TLDs, the status will be 'FAILURE'
+        return $result['status'] == 'UNAVAILABLE';
     }
 
     public function modifyNs(Registrar_Domain $domain)
@@ -344,8 +338,8 @@ class Registrar_Adapter_Internetbs extends Registrar_AdapterAbstract
                 'body' => $params,
             ]);
         } catch (HttpExceptionInterface $error) {
-            $e = new Registrar_Exception(sprintf('HttpClientException: %s', $error->getMessage()));
-            $this->getLog()->err($e);
+            $e = new Registrar_Exception("HttpClientException: {$error->getMessage()}.");
+            $this->getLog()->err($e->getMessage());
 
             throw $e;
         }
@@ -359,10 +353,8 @@ class Registrar_Adapter_Internetbs extends Registrar_AdapterAbstract
      * Parses data returned by request.
      *
      * @param string $data
-     *
-     * @return array
      */
-    private function _parseResult($data)
+    private function _parseResult($data): array
     {
         $lines = explode("\n", $data);
         $result = [];

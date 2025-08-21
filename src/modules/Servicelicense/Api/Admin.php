@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -17,10 +18,8 @@ class Admin extends \Api_Abstract
 {
     /**
      * Get available licensing plugins.
-     *
-     * @return array
      */
-    public function plugin_get_pairs(array $data)
+    public function plugin_get_pairs(array $data): array
     {
         $plugins = $this->getService()->getLicensePlugins();
         $result = [];
@@ -74,7 +73,7 @@ class Admin extends \Api_Abstract
      */
     public function _getService(array $data)
     {
-        $required = ['order_id' => 'Order id is required'];
+        $required = ['order_id' => 'Order ID is required'];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
         $order = $this->di['db']->getExistingModelById('clientOrder', $data['order_id'], 'Order not found');

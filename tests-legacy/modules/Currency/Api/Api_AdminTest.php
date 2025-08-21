@@ -160,7 +160,7 @@ class Api_AdminTest extends \BBTestCase
         'ZWL' => 'ZWL - Zimbabwe dollar',
     ];
 
-    public function testGetList()
+    public function testGetList(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -175,9 +175,12 @@ class Api_AdminTest extends \BBTestCase
             ->method('getExistingModelById')
             ->willReturn($model);
 
-        $pager = $this->getMockBuilder('Box_Pagination')->getMock();
+        $pager = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pager->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($willReturn);
 
         $di = new \Pimple\Container();
@@ -195,7 +198,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result['list']);
     }
 
-    public function testGetPairs()
+    public function testGetPairs(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -210,7 +213,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testGet()
+    public function testGet(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
         $model = new \Model_Currency();
@@ -240,7 +243,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testGetDefault()
+    public function testGetDefault(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
         $model = new \Model_Currency();
@@ -316,7 +319,7 @@ class Api_AdminTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('CreateExceptionProvider')]
-    public function testCreateException($data, $getByCodeCalled, $getByCodeReturn, $getAvailableCurrenciesCalled)
+    public function testCreateException($data, $getByCodeCalled, $getByCodeReturn, $getAvailableCurrenciesCalled): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -341,7 +344,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->create($data); // Expecting \FOSSBilling\Exception every time
     }
 
-    public function testCreate()
+    public function testCreate(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -377,7 +380,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, $data['code']);
     }
 
-    public function testUpdate()
+    public function testUpdate(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -413,7 +416,7 @@ class Api_AdminTest extends \BBTestCase
     /**
      * @expectedException \FOSSBilling\Exception
      */
-    public function testDeleteException()
+    public function testDeleteException(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -435,7 +438,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->delete([]); // Expecting \FOSSBilling\Exception every time
     }
 
-    public function testDelete()
+    public function testDelete(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -492,7 +495,7 @@ class Api_AdminTest extends \BBTestCase
      * @expectedException \FOSSBilling\Exception
      */
     #[\PHPUnit\Framework\Attributes\DataProvider('SetDefaultExceptionProvider')]
-    public function testSetDefaultException($data, $getByCodeCalled, $getByCodeReturn)
+    public function testSetDefaultException($data, $getByCodeCalled, $getByCodeReturn): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 
@@ -515,7 +518,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->set_default($data); // Expecting \FOSSBilling\Exception every time
     }
 
-    public function testSetDefault()
+    public function testSetDefault(): void
     {
         $adminApi = new \Box\Mod\Currency\Api\Admin();
 

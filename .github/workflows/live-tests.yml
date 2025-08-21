@@ -20,15 +20,16 @@ env:
 jobs:
   fresh-install:
     runs-on: ubuntu-latest
+    if: ${{ (github.event_name == 'pull_request' && github.event.pull_request.base.repo.id != github.event.pull_request.head.repo.id) || github.event_name == 'push' }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - name: 'PHP Build' 
-        uses: FOSSBilling/.workflows/.github/actions/php-build@8749327430a3e843ec6c1c997d4568575ab2f364
+      - name: 'PHP Build'
+        uses: FOSSBilling/.workflows/.github/actions/php-build@3e9ace8872ed7d0961a73e7677d19cd9f58846df
         with:
           cache-deps: 'true'
           composer-args: '--prefer-dist --optimize-autoloader'
-          php-version: 8.1
+          php-version: 8.2
 
       - name: Make Needed Directories
         run: |
@@ -50,35 +51,32 @@ jobs:
           key: huraga-${{ hashFiles('./package-lock.json', './src/themes/huraga/assets/huraga.js', './src/themes/huraga/assets/scss/*.scss') }}
 
       - name: 'Install Node.js and Enable Caching'
-        if: steps.cache-admin_default.outputs.cache-hit != 'true' && steps.cache-huraga.outputs.cache-hit != 'true'
+        if: steps.cache-admin_default.outputs.cache-hit != 'true' || steps.cache-huraga.outputs.cache-hit != 'true'
         uses: actions/setup-node@v4
         with:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
-          node-version: 20
+          node-version: 22
 
       - name: 'Install Node.js Dependencies'
-        if: steps.cache-admin_default.outputs.cache-hit != 'true' && steps.cache-huraga.outputs.cache-hit != 'true'
+        if: steps.cache-admin_default.outputs.cache-hit != 'true' || steps.cache-huraga.outputs.cache-hit != 'true'
         run: npm ci
 
       - name: 'Build Frontend Assets'
-        if: steps.cache-admin_default.outputs.cache-hit != 'true' && steps.cache-huraga.outputs.cache-hit != 'true'
+        if: steps.cache-admin_default.outputs.cache-hit != 'true' || steps.cache-huraga.outputs.cache-hit != 'true'
         run: npm run build
 
       - name: 'Download Latest Translations'
-        uses: robinraju/release-downloader@v1.9
-        with:
-          repository: 'FOSSBilling/locale'
-          latest: true
-          fileName: 'translations.zip'
-          out-file-path: './src/locale'
-          extract: true
+        run: |
+          wget https://github.com/FOSSBilling/locale/releases/download/latest/translations.zip -O translations.zip
+          mkdir -p ./src/locale
+          unzip -o translations.zip -d ./src/locale
 
       - name: 'Copy Required Files and Clean-up'
         run: |
           cp README.md ./src/
           cp LICENSE ./src/
-          rm ./src/locale/translations.zip
+          rm translations.zip
 
       - name: Start MySQL
         run: sudo systemctl start mysql.service
@@ -87,11 +85,15 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: imagick, gd, intl, xml, dom, curl, iconv, json, opcache, mbstring, bz2, simplexml
+          extensions: imagick, gd, intl, xml, dom, curl, iconv, json, opcache, mbstring, bz2, simplexml, pdo, pdo_mysql
 
       - name: Setup Apache
         run: |
-          sudo apt-get install libapache2-mod-php8.3
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends \
+            libapache2-mod-php8.3 php8.3 php8.3-common php8.3-intl \
+            php8.3-mysql php8.3-xml php8.3-curl php8.3-fpm php8.3-mbstring \
+            php8.3-opcache php8.3-gd
           sudo a2enmod php8.3
           sudo systemctl start apache2
           sudo a2enmod rewrite
@@ -157,16 +159,32 @@ jobs:
           -X POST \
           http://localhost/install/install.php?a=install
 
-      - name: Run Cron
-        run: php /var/www/localhost/cron.php
+      - name: Display the installer error log if it exists
+        run: |
+          LOG_PATH="/var/www/localhost/install/php_error.log"
+            
+          if [ -f "$LOG_PATH" ]; then
+            cat "$LOG_PATH"
+          else
+            echo "The installer error log does not exist."
+          fi
+
+      - name: Display the admin page
+        run: curl http://localhost/admin
 
       - name: Run the API test suite
         run: php ./src/vendor/bin/phpunit --configuration phpunit-live.xml
 
-      - name: Display the FOSSBilling PHP error log
+      - name: Display the FOSSBilling PHP error log, if it exists
         if: always()
-        run: cat /var/www/localhost/data/log/php_error.log
-
+        run: |
+          PHP_ERROR_LOG_PATH="/var/www/localhost/data/log/php_error.log"
+            
+          if [ -f "$PHP_ERROR_LOG_PATH" ]; then
+            cat "$PHP_ERROR_LOG_PATH"
+          else
+            echo "The PHP error log does not exist."
+          fi
       - name: Display the other FOSSBilling logs
         if: always()
         working-directory: /var/www/localhost/data/log/

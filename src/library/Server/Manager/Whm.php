@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -82,11 +82,33 @@ class Server_Manager_Whm extends Server_Manager
      *
      * @return string the login URL
      */
-    public function getLoginUrl(Server_Account $account = null): string
+    public function getLoginUrl(?Server_Account $account = null): string
     {
-        $host = $this->_config['host'];
+        if ($account) {
+            $action = 'create_user_session';
+            $params = [
+                'api.version' => 2,
+                'user' => $account->getUsername(),
+                'service' => 'cpaneld',
+            ];
 
-        return 'http://' . $host . '/cpanel';
+            try {
+                $response = $this->request($action, $params);
+                if (isset($response->data->url)) {
+                    return $response->data->url;
+                } else {
+                    $this->getLog()->err('Unexpected API response: ' . print_r($response, true));
+
+                    return 'https://' . $this->_config['host'] . '/cpanel';
+                }
+            } catch (Server_Exception $e) {
+                $this->getLog()->err("Failed to get login URL: {$e->getMessage()}.");
+
+                return 'https://' . $this->_config['host'] . '/cpanel';
+            }
+        } else {
+            return 'https://' . $this->_config['host'] . '/cpanel';
+        }
     }
 
     /**
@@ -96,11 +118,36 @@ class Server_Manager_Whm extends Server_Manager
      *
      * @return string the login URL
      */
-    public function getResellerLoginUrl(Server_Account $account = null): string
+    public function getResellerLoginUrl(?Server_Account $account = null): string
     {
-        $host = $this->_config['host'];
+        if ($account) {
+            // API action for creating a user session
+            $action = 'create_user_session';
+            $params = [
+                'api.version' => 2,
+                'user' => $account->getUsername(),
+                'service' => 'whostmgrd',
+            ];
 
-        return 'http://' . $host . '/whm';
+            try {
+                // Call the request function
+                $response = $this->request($action, $params);
+                // Check if the response is an object and access it accordingly
+                if (isset($response->data->url)) {
+                    return $response->data->url;
+                } else {
+                    $this->getLog()->err('Unexpected API response: ' . print_r($response, true));
+
+                    return 'https://' . $this->_config['host'] . '/whm';
+                }
+            } catch (Server_Exception $e) {
+                $this->getLog()->err("Failed to get login URL: {$e->getMessage()}.");
+
+                return 'https://' . $this->_config['host'] . '/whm';
+            }
+        } else {
+            return 'https://' . $this->_config['host'] . '/whm';
+        }
     }
 
     /**
@@ -543,7 +590,7 @@ class Server_Manager_Whm extends Server_Manager
 
         // Construct the authorization header
         $username = $this->_config['username'];
-        $accessHash = $this->_config['accessHash'];
+        $accessHash = $this->_config['accesshash'];
         $password = $this->_config['password'];
         $authHeader = (!empty($accessHash)) ? 'WHM ' . $username . ':' . $accessHash
             : 'Basic ' . $username . ':' . $password;
@@ -559,7 +606,7 @@ class Server_Manager_Whm extends Server_Manager
             ]);
         } catch (HttpExceptionInterface $error) {
             $e = new Server_Exception('HttpClientException: :error', [':error' => $error->getMessage()]);
-            $this->getLog()->err($e);
+            $this->getLog()->err($e->getMessage());
 
             throw $e;
         }

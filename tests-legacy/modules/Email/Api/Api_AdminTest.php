@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Email\Api;
 
 class Api_AdminTest extends \BBTestCase
 {
-    public function testEmailGetList()
+    public function testEmailGetList(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = new \Box\Mod\Email\Service();
@@ -15,9 +15,12 @@ class Api_AdminTest extends \BBTestCase
             ],
         ];
 
-        $pager = $this->getMockBuilder('Box_Pagination')->getMock();
+        $pager = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pager->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($willReturn);
 
         $di = new \Pimple\Container();
@@ -36,7 +39,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result['list']);
     }
 
-    public function testEmailGet()
+    public function testEmailGet(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -101,7 +104,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, $expected);
     }
 
-    public function testSend()
+    public function testSend(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -137,7 +140,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResend()
+    public function testResend(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -176,7 +179,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResendExceptionEmailNotFound()
+    public function testResendExceptionEmailNotFound(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -203,7 +206,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->email_resend($data);
     }
 
-    public function testDeleteExceptionEmailNotFound()
+    public function testDeleteExceptionEmailNotFound(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -230,7 +233,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->email_delete($data);
     }
 
-    public function testEmailDelete()
+    public function testEmailDelete(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = new \Box\Mod\Email\Service();
@@ -270,7 +273,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testTemplateGetList()
+    public function testTemplateGetList(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = new \Box\Mod\Email\Service();
@@ -278,14 +281,17 @@ class Api_AdminTest extends \BBTestCase
         $willReturn = [
             'list' => [
                 [
-                'id' => 1,
+                    'id' => 1,
                 ],
             ],
         ];
 
-        $pager = $this->getMockBuilder('Box_Pagination')->getMock();
+        $pager = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pager->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($willReturn);
 
         $di = new \Pimple\Container();
@@ -304,7 +310,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result['list']);
     }
 
-    public function testTemplateGet()
+    public function testTemplateGet(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -339,7 +345,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testTemplateDelete()
+    public function testTemplateDelete(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -372,7 +378,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testtemplateDeleteTemplateNotFound()
+    public function testtemplateDeleteTemplateNotFound(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -399,7 +405,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->template_delete($data);
     }
 
-    public function testTemplateCreate()
+    public function testTemplateCreate(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -434,7 +440,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, $modelId);
     }
 
-    public function testTemplateSendToNotSetException()
+    public function testTemplateSendToNotSetException(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $validatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Validate::class)->disableOriginalConstructor()->getMock();
@@ -449,7 +455,7 @@ class Api_AdminTest extends \BBTestCase
         $adminApi->template_send(['code' => 'code']);
     }
 
-    public function testTemplateUpdate()
+    public function testTemplateUpdate(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -459,7 +465,6 @@ class Api_AdminTest extends \BBTestCase
             'enabled' => '1',
             'category' => 'Category',
             'action_code' => 'Action_code',
-            'category' => '',
             'subject' => 'Subject',
             'content' => 'Content',
         ];
@@ -491,7 +496,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testTemplateReset()
+    public function testTemplateReset(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
 
@@ -518,7 +523,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, $id);
     }
 
-    public function testBatchTemplateGenerate()
+    public function testBatchTemplateGenerate(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['templateBatchGenerate'])->getMock();
@@ -532,7 +537,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchTemplateDisable()
+    public function testBatchTemplateDisable(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['templateBatchDisable'])->getMock();
@@ -546,7 +551,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchTemplateEnable()
+    public function testBatchTemplateEnable(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['templateBatchEnable'])->getMock();
@@ -560,7 +565,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testSendTest()
+    public function testSendTest(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['sendTemplate'])->getMock();
@@ -574,7 +579,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchSendmail()
+    public function testBatchSendmail(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['batchSend'])->getMock();
@@ -597,7 +602,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertNull($result);
     }
 
-    public function testTemplateSend()
+    public function testTemplateSend(): void
     {
         $adminApi = new \Box\Mod\Email\Api\Admin();
         $emailService = $this->getMockBuilder(\Box\Mod\Email\Service::class)->onlyMethods(['sendTemplate'])->getMock();
@@ -628,7 +633,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testTemplateRender()
+    public function testTemplateRender(): void
     {
         $adminApi = $this->getMockBuilder(\Box\Mod\Email\Api\Admin::class)->onlyMethods(['template_get'])->getMock();
         $adminApi->expects($this->atLeastOnce())
@@ -654,7 +659,7 @@ class Api_AdminTest extends \BBTestCase
         $this->assertEquals($result, 'rendered');
     }
 
-    public function testBatchDelete()
+    public function testBatchDelete(): void
     {
         $activityMock = $this->getMockBuilder('\\' . \Box\Mod\Email\Api\Admin::class)->onlyMethods(['email_delete'])->getMock();
         $activityMock->expects($this->atLeastOnce())->method('email_delete')->willReturn(true);

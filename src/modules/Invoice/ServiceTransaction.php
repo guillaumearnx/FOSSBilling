@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -27,7 +29,7 @@ class ServiceTransaction implements InjectionAwareInterface
         return $this->di;
     }
 
-    public function proccessReceivedATransactions()
+    public function processReceivedATransactions()
     {
         $this->di['logger']->info('Executed action to process received transactions');
         $received = $this->getReceived();
@@ -76,17 +78,17 @@ class ServiceTransaction implements InjectionAwareInterface
     {
         $this->di['events_manager']->fire(['event' => 'onBeforeAdminTransactionCreate', 'params' => $data]);
 
-        $skip_validation = isset($data['skip_validation']) ? (bool) $data['skip_validation'] : false;
+        $skip_validation = isset($data['skip_validation']) && (bool) $data['skip_validation'];
         if (!$skip_validation) {
-            if (!isset($data['bb_invoice_id'])) {
-                throw new \FOSSBilling\InformationException('Transaction invoice id is missing');
+            if (!isset($data['invoice_id'])) {
+                throw new \FOSSBilling\InformationException('Transaction invoice ID is missing');
             }
 
-            if (!isset($data['bb_gateway_id'])) {
-                throw new \FOSSBilling\InformationException('Payment gateway id is missing');
+            if (!isset($data['gateway_id'])) {
+                throw new \FOSSBilling\InformationException('Payment gateway ID is missing');
             }
-            $this->di['db']->getExistingModelById('Invoice', $data['bb_invoice_id'], 'Invoice was not found');
-            $this->di['db']->getExistingModelById('PayGateway', $data['bb_gateway_id'], 'Gateway was not found');
+            $this->di['db']->getExistingModelById('Invoice', $data['invoice_id'], 'Invoice was not found');
+            $this->di['db']->getExistingModelById('PayGateway', $data['gateway_id'], 'Gateway was not found');
         }
 
         $ipn = [
@@ -97,11 +99,11 @@ class ServiceTransaction implements InjectionAwareInterface
         ];
 
         $transaction = $this->di['db']->dispense('Transaction');
-        $transaction->gateway_id = $data['bb_gateway_id'] ?? null;
-        $transaction->invoice_id = $data['bb_invoice_id'] ?? null;
+        $transaction->gateway_id = $data['gateway_id'] ?? null;
+        $transaction->invoice_id = $data['invoice_id'] ?? null;
         $transaction->txn_id = $data['txn_id'] ?? null;
         $transaction->status = 'received';
-        $transaction->ip = $this->di['request']->getClientAddress();
+        $transaction->ip = $this->di['request']->getClientIp();
         $transaction->ipn = json_encode($ipn);
         $transaction->note = $data['note'] ?? null;
         $transaction->created_at = date('Y-m-d H:i:s');
@@ -124,7 +126,7 @@ class ServiceTransaction implements InjectionAwareInterface
         return true;
     }
 
-    public function toApiArray(\Model_Transaction $model, $deep = false, $identity = null)
+    public function toApiArray(\Model_Transaction $model, $deep = false, $identity = null): array
     {
         $gateway = null;
         if ($model->gateway_id) {
@@ -154,7 +156,7 @@ class ServiceTransaction implements InjectionAwareInterface
             'updated_at' => $model->updated_at,
         ];
         if ($deep) {
-            $result['ipn'] = json_decode($model->ipn, true);
+            $result['ipn'] = json_decode($model->ipn ?? '', true);
         }
 
         return $result;
@@ -353,7 +355,7 @@ class ServiceTransaction implements InjectionAwareInterface
 
         $gtw = $this->di['db']->load('PayGateway', $tx->gateway_id);
         if (!$gtw instanceof \Model_PayGateway) {
-            throw new \FOSSBilling\Exception('Can not handle transaction received from unknown payment gateway: :id', [':id' => $tx->gateway_id], 704);
+            throw new \FOSSBilling\Exception('Cannot handle transaction received from unknown payment gateway: :id', [':id' => $tx->gateway_id], 704);
         }
 
         $payGatewayService = $this->di['mod_service']('Invoice', 'PayGateway');
@@ -362,7 +364,7 @@ class ServiceTransaction implements InjectionAwareInterface
             throw new \FOSSBilling\Exception('Payment adapter :adapter does not support action :action', [':adapter' => $gtw->name, ':action' => 'processTransaction'], 705);
         }
 
-        $ipn = json_decode($tx->ipn, 1);
+        $ipn = json_decode($tx->ipn ?? '', true);
 
         return $adapter->processTransaction($this->di['api_system'], $id, $ipn, $tx->gateway_id);
     }
@@ -465,7 +467,7 @@ class ServiceTransaction implements InjectionAwareInterface
 
         $invoiceService = $this->di['mod_service']('Invoice');
         $payGatewayService = $this->di['mod_service']('Invoice', 'PayGateway');
-        $ipn = $this->di['tools']->decodeJ($tx->ipn);
+        $ipn = json_decode($tx->ipn ?? '', true) ?? [];
 
         if (empty($tx->gateway_id)) {
             throw new \FOSSBilling\Exception('Could not determine transaction origin. Transaction payment gateway is unknown.', null, 701);
@@ -473,7 +475,7 @@ class ServiceTransaction implements InjectionAwareInterface
 
         $gtw = $this->di['db']->load('PayGateway', $tx->gateway_id);
         if (!$gtw instanceof \Model_PayGateway) {
-            throw new \FOSSBilling\Exception('Can not handle transaction received from unknown payment gateway: :id', [':id' => $tx->gateway_id], 704);
+            throw new \FOSSBilling\Exception('Cannot handle transaction received from unknown payment gateway: :id', [':id' => $tx->gateway_id], 704);
         }
 
         $adapter = $payGatewayService->getPaymentAdapter($gtw);
@@ -596,7 +598,7 @@ class ServiceTransaction implements InjectionAwareInterface
         $this->_validateApprovedTransaction($tx);
 
         if (empty($tx->s_id)) {
-            throw new \FOSSBilling\Exception('Can not create subscription. Subscription id from payment gateway was not received');
+            throw new \FOSSBilling\Exception('Cannot create subscription. Subscription ID from payment gateway was not received');
         }
 
         $invoice = $this->di['db']->load('Invoice', $tx->invoice_id);
@@ -655,7 +657,7 @@ class ServiceTransaction implements InjectionAwareInterface
 
         // check that payment currency is correct
         if ($invoice->currency != $tx->currency) {
-            throw new \FOSSBilling\Exception('Transaction currency :code do not match required currency :required', [':code' => $tx->currency, ':required' => $invoice->currency], 709);
+            throw new \FOSSBilling\Exception('Transaction currency :code does not match required currency :required', [':code' => $tx->currency, ':required' => $invoice->currency], 709);
         }
 
         // check that payment status is completed if
@@ -670,12 +672,12 @@ class ServiceTransaction implements InjectionAwareInterface
         $client = $this->di['db']->load('Client', $proforma->client_id);
 
         if ($client->currency != $proforma->currency) {
-            throw new \FOSSBilling\Exception('Client currency do not match invoice currency');
+            throw new \FOSSBilling\Exception('Client currency does not match invoice currency');
         }
 
         // do not debit negative or zero amount
         if ($tx->amount < 0) {
-            throw new \FOSSBilling\Exception('Can not add negative amount to client balance for debit transaction');
+            throw new \FOSSBilling\Exception('Cannot add negative amount to client balance for debit transaction');
         }
 
         $credit = $this->di['db']->dispense('ClientBalance');

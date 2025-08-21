@@ -14,7 +14,7 @@ class AdminTest extends \BBTestCase
         $this->api = new Admin();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->api->setDi($di);
@@ -22,7 +22,7 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testchangePlan()
+    public function testchangePlan(): void
     {
         $data = [
             'plan_id' => 1,
@@ -58,7 +58,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testchangePlanMissingPlanId()
+    public function testchangePlanMissingPlanId(): void
     {
         $data = [];
 
@@ -67,7 +67,7 @@ class AdminTest extends \BBTestCase
         $this->api->change_plan($data);
     }
 
-    public function testchangeUsername()
+    public function testchangeUsername(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -90,7 +90,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testchangeIp()
+    public function testchangeIp(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -113,7 +113,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testchangeDomain()
+    public function testchangeDomain(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -136,7 +136,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testchangePassword()
+    public function testchangePassword(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -159,7 +159,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testsync()
+    public function testsync(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -182,7 +182,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testupdate()
+    public function testupdate(): void
     {
         $getServiceReturnValue = [new \Model_ClientOrder(), new \Model_ServiceHosting()];
         $apiMock = $this->getMockBuilder('\\' . Admin::class)
@@ -205,7 +205,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testmanagerGetPairs()
+    public function testmanagerGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
@@ -218,7 +218,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testserverGetPairs()
+    public function testserverGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
@@ -231,22 +231,47 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testserverGetList()
+    public function testaccountGetList(): void
+    {
+        $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
+        $serviceMock->expects($this->atLeastOnce())
+            ->method('getAccountsSearchQuery')
+            ->willReturn(['SQLstring', []]);
+
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
+        $pagerMock->expects($this->atLeastOnce())
+            ->method('getPaginatedResultSet')
+            ->willReturn(['list' => []]);
+
+        $di = new \Pimple\Container();
+        $di['mod_service'] = $di->protect(fn ($name) => $systemServiceMock);
+        $di['pager'] = $pagerMock;
+        $di['db'] = $dbMock;
+
+        $this->api->setDi($di);
+        $this->api->setService($serviceMock);
+
+        $result = $this->api->account_get_list([]);
+        $this->assertIsArray($result);
+    }
+
+    public function testserverGetList(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
             ->method('getServersSearchQuery')
             ->willReturn(['SQLstring', []]);
 
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->getMock();
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn(['list' => []]);
-
-        $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
-        $dbMock->expects($this->atLeastOnce())
-            ->method('find')
-            ->willReturn([]);
 
         $di = new \Pimple\Container();
         $di['pager'] = $pagerMock;
@@ -259,7 +284,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testserverCreate()
+    public function testserverCreate(): void
     {
         $data = [
             'name' => 'test',
@@ -290,7 +315,7 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($newServerId, $result);
     }
 
-    public function testserverGet()
+    public function testserverGet(): void
     {
         $data['id'] = 1;
 
@@ -320,7 +345,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testServerDelete()
+    public function testServerDelete(): void
     {
         // Test case 1: Server can be deleted
         $data['id'] = 1;
@@ -381,7 +406,7 @@ class AdminTest extends \BBTestCase
         $this->api->server_delete($data);
     }
 
-    public function testserverUpdate()
+    public function testserverUpdate(): void
     {
         $data['id'] = 1;
 
@@ -411,7 +436,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testserverTestConnection()
+    public function testserverTestConnection(): void
     {
         $data['id'] = 1;
 
@@ -441,7 +466,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testhpGetPairs()
+    public function testhpGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
@@ -453,16 +478,19 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testhpGetList()
+    public function testhpGetList(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Servicehosting\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
             ->method('getHpSearchQuery')
             ->willReturn(['SQLstring', []]);
 
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->getMock();
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn(['list' => []]);
 
         $di = new \Pimple\Container();
@@ -475,7 +503,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testhpDelete()
+    public function testhpDelete(): void
     {
         $data = [
             'id' => 1,
@@ -517,7 +545,7 @@ class AdminTest extends \BBTestCase
         }
     }
 
-    public function testhpGet()
+    public function testhpGet(): void
     {
         $data = [
             'id' => 1,
@@ -551,7 +579,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testhpUpdate()
+    public function testhpUpdate(): void
     {
         $data = [
             'id' => 1,
@@ -586,7 +614,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testhpCreate()
+    public function testhpCreate(): void
     {
         $data = [
             'name' => 'test',
@@ -615,7 +643,7 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($newHpId, $result);
     }
 
-    public function testGetService()
+    public function testGetService(): void
     {
         $data = [
             'order_id' => 1,
@@ -650,7 +678,7 @@ class AdminTest extends \BBTestCase
         $this->assertInstanceOf('\Model_ServiceHosting', $result[1]);
     }
 
-    public function testGetServiceOrderNotActivated()
+    public function testGetServiceOrderNotActivated(): void
     {
         $data = [
             'order_id' => 1,

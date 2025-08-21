@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -11,6 +11,9 @@ declare(strict_types=1);
  */
 
 namespace FOSSBilling;
+
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 
 class Requirements
 {
@@ -27,29 +30,36 @@ class Requirements
             'iconv',
             'json',
             'zlib',
+            'gd',
         ],
         'suggested_extensions' => [
-            'mbstring',
-            'opcache',
-            'imagick',
-            'gd',
-            'bz2',
-            'simplexml',
-            'xml',
+            'mbstring' => 'improved performance',
+            'opcache' => 'improved performance',
+            'imagick' => 'improved performance',
+            'bz2' => 'optional support for bzip2 archives',
+            'simplexml' => 'the Plesk integration',
+            'xml' => 'the Plesk integration',
         ],
-        'min_version' => '8.1',
+        'min_version' => '8.2',
     ];
 
-    public array $writable = [
-        'folders' => [
-            PATH_ROOT . '/data/cache',
-            PATH_ROOT . '/data/log',
-            PATH_ROOT . '/data/uploads',
-        ],
-        'files' => [
-            PATH_ROOT . '/config.php',
-        ],
-    ];
+    private readonly Filesystem $filesystem;
+    public array $writable;
+
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+        $this->writable = [
+            'folders' => [
+                Path::join(PATH_ROOT, 'data', 'cache'),
+                Path::join(PATH_ROOT, 'data', 'log'),
+                Path::join(PATH_ROOT, 'data', 'uploads'),
+            ],
+            'files' => [
+                Path::join(PATH_ROOT, 'config.php'),
+            ],
+        ];
+    }
 
     public function isPhpVersionOk(): bool
     {
@@ -67,14 +77,14 @@ class Requirements
         $writable = false;
         if (is_writable($path)) {
             $writable = true;
-        } elseif (!file_exists($path)) {
-            $written = @file_put_contents($path, 'Test?');
-            if ($written) {
+        } elseif (!$this->filesystem->exists($path)) {
+            try {
+                $this->filesystem->dumpFile($path, 'Test?');
                 $writable = true;
-            } else {
+            } catch (\Exception) {
                 $this->isOk = false;
             }
-            @unlink($path);
+            $this->filesystem->remove($path);
         } else {
             $this->isOk = false;
         }
@@ -114,17 +124,26 @@ class Requirements
             }
         }
 
-        foreach ($this->php_reqs['suggested_extensions'] as $ext) {
+        foreach ($this->php_reqs['suggested_extensions'] as $ext => $message) {
             if ($ext === 'opcache') {
                 if (!function_exists('opcache_get_status')) {
-                    $result['suggested_extensions'][$ext] = false;
+                    $result['suggested_extensions'][$ext] = [
+                        'loaded' => false,
+                        'message' => $message,
+                    ];
 
                     continue;
                 }
                 $status = opcache_get_status();
-                $result['suggested_extensions'][$ext] = is_array($status) && $status['opcache_enabled'];
+                $result['suggested_extensions'][$ext] = [
+                    'loaded' => is_array($status) && $status['opcache_enabled'],
+                    'message' => $message,
+                ];
             } else {
-                $result['suggested_extensions'][$ext] = extension_loaded($ext);
+                $result['suggested_extensions'][$ext] = [
+                    'loaded' => extension_loaded($ext),
+                    'message' => $message,
+                ];
             }
         }
 

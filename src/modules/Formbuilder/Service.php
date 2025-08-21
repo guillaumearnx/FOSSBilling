@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -137,11 +138,11 @@ class Service implements InjectionAwareInterface
         $text = preg_replace('~[^\-\w]+~', '', $text);
 
         if (is_numeric(substr($text, 0, 1))) {
-            throw new \FOSSBilling\InformationException('Field name can not start with number.', null, 1649);
+            throw new \FOSSBilling\InformationException('Field name cannot start with number.', null, 1649);
         }
 
         if (empty($text)) {
-            throw new \FOSSBilling\InformationException('Field name can not be empty. Please make sure it is not empty and does not contain special characters.', null, 3502);
+            throw new \FOSSBilling\InformationException('Field name cannot be empty. Please make sure it is not empty and does not contain special characters.', null, 3502);
         }
 
         return $text;
@@ -168,18 +169,18 @@ class Service implements InjectionAwareInterface
 
         if (isset($field['type'])) {
             if ($field['type'] == 'checkbox' || $field['type'] == 'radio' || $field['type'] == 'select') {
-                if (!$this->isArrayUnique(array_filter($field['values'], 'strlen'))) {
+                if (!$this->isArrayUnique(array_filter($field['values'], strlen(...)))) {
                     throw new \FOSSBilling\InformationException(ucfirst($field['type']) . ' values must be unique', null, 1597);
                 }
-                if (!$this->isArrayUnique(array_filter($field['labels'], 'strlen'))) {
+                if (!$this->isArrayUnique(array_filter($field['labels'], strlen(...)))) {
                     throw new \FOSSBilling\InformationException(ucfirst($field['type']) . ' labels must be unique', null, 1598);
                 }
                 $field['options'] = array_combine($field['labels'], $field['values']);
-                $field['options'] = array_filter($field['options'], 'strlen');
+                $field['options'] = array_filter($field['options'], strlen(...));
                 $field['options'] = json_encode($field['options'], JSON_FORCE_OBJECT);
             }
             if ($field['type'] == 'textarea') {
-                if ((is_countable($field['textarea_size']) ? count($field['textarea_size']) : 0) != count((array) array_filter($field['textarea_size'], 'is_numeric'))) {
+                if ((is_countable($field['textarea_size']) ? count($field['textarea_size']) : 0) != count(array_filter($field['textarea_size'], is_numeric(...)))) {
                     throw new \FOSSBilling\InformationException('Textarea size options must be integer values', null, 3510);
                 }
                 $field['options'] = array_combine($field['textarea_option'], $field['textarea_size']);
@@ -218,7 +219,7 @@ class Service implements InjectionAwareInterface
         $formModel = $this->di['db']->getExistingModelById('Form', $formId);
         $result = $this->di['db']->toArray($formModel);
 
-        $result['style'] = json_decode($result['style'], true);
+        $result['style'] = json_decode($result['style'] ?? '', true);
         $result['fields'] = $this->getFormFields($result['id']);
         $result['fields'] = $this->fieldsJsonDecode($result['fields']);
 
@@ -233,22 +234,17 @@ class Service implements InjectionAwareInterface
         WHERE form_id = :form_id
         ORDER BY ID asc
         ';
-        $result = $this->di['db']->getAll($sql, [':form_id' => $formId]);
 
-        return $result;
+        return $this->di['db']->getAll($sql, [':form_id' => $formId]);
     }
 
     private function fieldsJsonDecode($fields)
     {
         foreach ($fields as $key => $r) {
-            if (!empty($r['options'])) {
-                $fields[$key]['options'] = json_decode($r['options'], true);
-            } else {
-                $fields[$key]['options'] = [];
-            }
+            $fields[$key]['options'] = json_decode($r['options'] ?? '', true) ?: [];
 
             if (!empty($r['default_value'])) {
-                $fields[$key]['default_value'] = (json_decode($r['default_value'])) ? (json_decode($r['default_value'], true)) : $r['default_value'];
+                $fields[$key]['default_value'] = json_decode($r['default_value'] ?? '', true) ?: $r['default_value'];
             } else {
                 $fields[$key]['default_value'] = '';
             }
@@ -290,7 +286,7 @@ class Service implements InjectionAwareInterface
         $this->di['validator']->checkRequiredParamsForArray($required, $result, null, 2575);
 
         if (str_starts_with($result['options'], '{') || str_starts_with($result['options'], '[')) {
-            $result['options'] = json_decode($result['options']);
+            $result['options'] = json_decode($result['options'] ?? '');
         }
 
         return $result;

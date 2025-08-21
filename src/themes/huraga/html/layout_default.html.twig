@@ -1,14 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-bs-theme="{{ settings.theme|default('light') }}">
 <head>
     <meta charset="utf-8">
-    <title>{% block meta_title %}{{ settings.meta_title }}{% endblock %}</title>
+   <title>{{ settings.meta_title_prefix }} {% block meta_title %}{% endblock %} {{ settings.meta_title_suffix }}</title>
 
     <meta property="bb:url" content="{{ constant('SYSTEM_URL') }}">
     <meta property="bb:client_area" content="{{ '/'|link }}">
     <meta name="csrf-token" content="{{ CSRFToken }}">
 
     <meta name="description" content="{% block meta_description %}{{ settings.meta_description }}{% endblock %}">
+    <meta name="keywords" content="{{ settings.meta_keywords }}">
     <meta name="robots" content="{{ settings.meta_robots }}">
     <meta name="author" content="{{ settings.meta_author }}">
     <meta name="generator" content="FOSSBilling">
@@ -33,8 +34,18 @@
 {% block body %}
 {% if not client and settings.require_login %}
     <script>
-        $(function () {
-            bb.redirect('{{ "login"|link }}');
+        document.addEventListener("DOMContentLoaded", function () {
+            const publicPaths = [
+                '/news',
+                '/tos',
+                '/privacy-policy'
+            ];
+            const currentPath = window.location.pathname;
+
+            const isAllowed = publicPaths.some(path => currentPath.startsWith(path));
+            if (!isAllowed) {
+                window.location.href = '{{ "login"|link }}';
+            }
         });
     </script>
 {% endif %}
@@ -44,13 +55,18 @@
 {% endif %}
 {% set company = guest.system_company %}
 
+{% if settings.theme == 'dark' %}
+    {% set logo_url =  company.logo_url_dark %}
+{% else %}
+    {% set logo_url =  company.logo_url %}
+{% endif %}
 <div class="container">
     <header>
         <nav class="navbar navbar-expand-md py-4">
             <div class="container-fluid">
-                {% if settings.show_company_logo and company.logo_url %}
+                {% if logo_url and settings.show_company_logo %}
                     <a class="navbar-brand" href="{{ '/'|link }}">
-                        <img class="d-none d-sm-block" src="{{ company.logo_url }}" alt="{{ company.name }}" height="45px"
+                        <img class="d-none d-sm-block" src="{{ logo_url }}" alt="{{ company.name }}" height="45px"
                              title="{{ company.name }}">
                         <span class="d-sm-none">{{ company.name }}</span>
                     </a>
@@ -61,7 +77,7 @@
                 {% endif %}
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
                         data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                        aria-expanded="false" aria-label="{{ 'Toggle navigation'|trans }}">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarSupportedContent">
@@ -106,7 +122,7 @@
                                         <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                             <img class="img-fluid rounded-circle" alt="{{ profile.first_name }} {{ profile.last_name }} gravatar" src="{{ profile.email|gravatar(60) }}" height="25px" width="25px">
                                             {% if profile.company %}
-                                                <span>{{ profile.first_name }} {{ profile.last_name }}|{{ profile.company }}</span>
+                                                <span>{{ profile.first_name }} {{ profile.last_name }} ({{ profile.company }})</span>
                                             {% else %}
                                                 <span>{{ profile.first_name }} {{ profile.last_name }}</span>
                                             {% endif %}
@@ -120,13 +136,13 @@
                                     </div>
                                 {% else %}
                                     <a class="ms-2 btn btn-outline-primary d-none d-md-block"
-                                       href="{{ 'signup'|link }}">{{ 'Sign up'|trans }}</a>
+                                       href="{{ 'signup'|link }}">{{ 'Register'|trans }}</a>
                                 {% endif %}
                             </li>
                         {% endif %}
 
                         <div class="d-md-none">
-                            {% include 'mobile_menu.html.twig' %}
+                            {{ include('mobile_menu.html.twig') }}
                         </div>
                     </div>
                 </div>
@@ -135,17 +151,19 @@
     </header>
     <div class="container">
         <div class="row">
+        {% if client or not settings.hide_menu %}
             <div class="col-3 d-none d-md-block">
-                {% include 'partial_menu.html.twig' %}
+                {{ include('partial_menu.html.twig') }}
             </div>
-            <div class="col-12 col-md-9">
+        {% endif %}
+            <div class="col-12 col-md-9" {% if not client and settings.hide_menu %} style="margin-left: auto; margin-right: auto;" {% endif %}>
                 <div id="wrapper">
                     <section role="main">
                         {% block content_before %}{% endblock %}
                         <div class="content-block" role="main">
                             {% if settings.show_breadcrumb %}
                                 {% block breadcrumbs %}
-                                    <nav aria-label="breadcrumb">
+                                    <nav aria-label="{{ 'breadcrumb'|trans }}">
                                         <ol class="breadcrumb d-none d-md-flex">
                                             <li class="breadcrumb-item"><a href="{{ '/'|link }}">{{ 'Home'|trans }}</a>
                                             </li>
@@ -159,7 +177,7 @@
 
                             {% block content %}{% endblock %}
 
-                            {% include "partial_message.html.twig" %}
+                            {{ include('partial_message.html.twig') }}
 
                             {% block content_after %}{% endblock %}
                         </div>
@@ -221,7 +239,7 @@
                             </div>
                             {% if guest.extension_is_on({"mod":'branding'}) %}
                                 <div class="d-flex justify-content-center">
-                                    <span>Powered by the&nbsp;</span>
+                                    <span>{{ 'Powered by the'|trans }}&nbsp;</span>
                                     <a class="link-offset-2 link-offset-3-hover link-underline link-underline-opacity-0 link-underline-opacity-75-hover"
                                         href="https://fossbilling.org" title="Billing Software"
                                        target="_blank">{{ 'FOSSBilling Community'|trans }}</a>
@@ -242,16 +260,16 @@
         <div class="spinner-border"
              style="width: 4rem; height: 4rem; top: 50%; left: 50%; position: fixed; z-index: 999"></div>
     </div>
-    <noscript>NOTE: Many features on FOSSBilling require Javascript and cookies. You can enable both via your browser's preference settings.</noscript>
+    <noscript>{{ "NOTE: Many features on FOSSBilling require Javascript and cookies. You can enable both in your browser's preference settings."|trans }}</noscript>
 
     {% endblock %}
 
     {% if settings.inject_javascript %}
         {{ settings.inject_javascript | raw }}
     {% endif %}
-    {% include 'partial_pending_messages.html.twig' ignore missing %}
+    {{ include('partial_pending_messages.html.twig', ignore_missing: true) }}
     {% if guest.extension_is_on({ "mod": "cookieconsent" }) %}
-        {% include 'mod_cookieconsent_index.html.twig' ignore missing %}
+        {{ include('mod_cookieconsent_index.html.twig', ignore_missing: true) }}
     {% endif %}
 </div>
 {{ DebugBar_render() }}

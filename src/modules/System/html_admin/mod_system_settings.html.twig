@@ -25,7 +25,7 @@
 {% block content %}
     {% set new_params = admin.extension_config_get({ 'ext': 'mod_system' }) %}
     {% set params = admin.system_get_params %}
-    {% set enviroment = admin.system_env %}
+    {% set environment = admin.system_env %}
     {% set external_ip = admin.system_env({ 'ip': true }) %}
     <div class="card-tabs">
         <ul class="nav nav-tabs" role="tablist">
@@ -162,7 +162,7 @@
                                 <label class="form-label col-3 col-form-label">
                                     {{ 'Disallow guest API to fetch FOSSBilling version' | trans }}
                                     <br/>
-                                    <small class="text-muted">{{'Enabling this functionality may effect modules that depend on it.' | trans }}</small>
+                                    <small class="text-muted">{{'Enabling this functionality may affect modules that depend on it.' | trans }}</small>
                                 </label>
                                 <div class="col">
                                     <div class="form-check form-check-inline">
@@ -528,14 +528,52 @@ ZW=Zimbabwe
                                 <div class="datagrid-content">{{ constant('PHP_VERSION') }}</div>
                             </div>
                             <div class="datagrid-item">
-                                <div class="datagrid-title">{{ 'Instance ID'|trans }}</div>
+                                <div class="datagrid-title">{{ 'Instance ID'|trans }} (<a href="https://fossbilling.org/docs/faq/error-reporting#what-is-the-instance-id-and-where-do-i-find-it" target="_blank">?</a>)</div>
                                 <div class="datagrid-content">{{ admin.system_instance_id }}</div>
                             </div>
                             <div class="datagrid-item">
                                 <div class="datagrid-title">{{ 'License'|trans }}</div>
-                                <div class="datagrid-content"><a href="https://github.com/FOSSBilling/FOSSBilling/blob/main/LICENSE">Apache 2.0</a></div>
+                                <div class="datagrid-content"><a href="https://github.com/FOSSBilling/FOSSBilling/blob/main/LICENSE" target="_blank">Apache 2.0</a></div>
                             </div>
                         </div>
+
+                        <div class="accordion mt-4" id="accordion-default">
+                            <div class="accordion-item">
+                                <div class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-1-default" aria-expanded="false">
+                                    {{ 'Enabled modules'|trans }}
+                                    <div class="accordion-button-toggle">
+                                        <svg class="icon">
+                                            <use xlink:href="#chevron-down" />
+                                        </svg>
+                                    </div>
+                                </button>
+                                </div>
+                                <div id="collapse-1-default" class="accordion-collapse collapse" data-bs-parent="#accordion-default">
+                                    <div class="accordion-body">
+                                        <div class="container">
+                                            <div style="column-count: 3; column-gap: 2rem;">
+                                                {% set modules = admin.extension_get_list({ 'active': true }) %}
+                                                {% for module in modules %}
+                                                <div class="border rounded px-3 py-2 mb-2 d-flex justify-content-between align-items-center">
+                                                    <span>
+                                                    {% if module.status == 'core' %}
+                                                        <svg class="icon" data-bs-toggle="tooltip" data-bs-placement="top" title="{{ 'This is a core module included with FOSSBilling and cannot be disabled.'|trans }}">
+                                                            <use xlink:href="#cog" />
+                                                        </svg>
+                                                    {% endif %}
+                                                    <span title="Module ID: {{ module.id }}">{{ module.name }}</span>
+                                                    </span>
+                                                    <span class="badge bg-default text-default-fg">{{ module.version }}</span>
+                                                </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
                 </div>
 
@@ -548,7 +586,7 @@ ZW=Zimbabwe
                         {% if admin.system_error_reporting_enabled %}
                             <div class="alert alert-success" role="alert">
                                 <p>{{ 'Error reporting is enabled.'|trans}}</p>
-                                <p>{{ 'This FOSSBilling instance is automatically sending errors which allows us to more easily improve the software and keep it stable. Thanks!'|trans }}</p>
+                                <p>{{ 'This FOSSBilling instance is automatically sending error reports which allows us to more easily improve the software and keep it stable. Thanks!'|trans }}</p>
                                 <a class="btn btn-danger api-link" href="{{ 'api/admin/system/toggle_error_reporting'|link({ 'CSRFToken': CSRFToken }) }}" data-api-msg="{{ 'Error reporting is now disabled.'|trans }}">{{'Disable error reporting'|trans}}</a>
                             </div>
                         {% else %}
@@ -558,15 +596,15 @@ ZW=Zimbabwe
                                 <a class="btn btn-success api-link" href="{{ 'api/admin/system/toggle_error_reporting'|link({ 'CSRFToken': CSRFToken }) }}" data-api-msg="{{ 'Error reporting is now enabled.'|trans }}">{{'Enable error reporting'|trans}}</a>
                             </div>
                         {% endif %}
-                        <p>{{ 'FOSSBilling optionally includes automated error reporting to help aid the project\'s development and stability. To find the most up-to-date information about it, you should review the links and information below.'|trans }}</p>
+                        <p>{{ "FOSSBilling optionally includes automated error reporting to help aid the project's development and stability. To find the most up-to-date information about it, you should review the links and information below."|trans }}</p>
                         <ul>
                             <li><a href="https://fossbilling.org/docs/faq/error-reporting" target="_blank">{{ 'Learn more about error reporting'|trans }}</a></li>
                             <li>
                                 <a href="https://fossbilling.org/docs/faq/error-reporting#error-reporting-changelog" target="_blank">{{ 'Error reporting changelog'|trans }}</a>
-                                <span class="text-muted">({{ 'Last applicable behavior change change: '|trans }} {{ last_change }})</span>
+                                <span class="text-muted">({{ 'Last applicable behavior change: '|trans }} {{ last_change }})</span>
                             </li>
                         </ul>
-                        <span class="text-muted">{{ 'The last applicable behavior change represents the most recent FOSSBilling version that changed error reporting which also applies to this current version. There may have been more recent changes than what\'s listed.'|trans }}</span>
+                        <span class="text-muted">{{ "The last applicable behavior change represents the most recent FOSSBilling version that changed error reporting which also applies to this current version. There may have been more recent changes than what's listed."|trans }}</span>
                     </div>
                 </div>
 
@@ -590,7 +628,7 @@ ZW=Zimbabwe
                             
                             <div class="col-12 col-lg-3">
                                 <label for="interface">{{"Select the default network interface:"|trans }}</label>
-                                <select class="form-select" aria-label="Available network interfaces" name="interface" id="interface">
+                                <select class="form-select" aria-label="{{ 'Available network interfaces'|trans }}" name="interface" id="interface">
                                     <option value="0" {% if constant('BIND_TO') == 0 %} selected {%endif%}>{{ 'None (Default PHP Behavior)'|trans }}</option>
                                     {% for i, interface in interface_ips %}
                                     <option value="{{ interface }}" {% if constant('BIND_TO') == interface %} selected {% endif %}>{{ interface }}</option>

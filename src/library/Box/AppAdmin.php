@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -12,12 +13,13 @@
 use DebugBar\Bridge\NamespacedTwigProfileCollector;
 use FOSSBilling\Environment;
 use FOSSBilling\TwigExtensions\DebugBar;
+use Symfony\Component\Filesystem\Path;
 use Twig\Extension\ProfilerExtension;
 use Twig\Profiler\Profile;
 
 class Box_AppAdmin extends Box_App
 {
-    public function init()
+    public function init(): void
     {
         $m = $this->di['mod']($this->mod);
         $controller = $m->getAdminController();
@@ -26,7 +28,7 @@ class Box_AppAdmin extends Box_App
         }
     }
 
-    protected function checkPermission()
+    protected function checkPermission(): void
     {
         $service = $this->di['mod_service']('Staff');
 
@@ -38,9 +40,9 @@ class Box_AppAdmin extends Box_App
         }
     }
 
-    public function render($fileName, $variableArray = [])
+    public function render($fileName, $variableArray = []): string
     {
-        $template = $this->getTwig()->load($fileName . '.html.twig');
+        $template = $this->getTwig()->load(Path::changeExtension($fileName, '.html.twig'));
 
         return $template->render($variableArray);
     }
@@ -52,7 +54,7 @@ class Box_AppAdmin extends Box_App
         exit;
     }
 
-    protected function getTwig()
+    protected function getTwig(): Twig\Environment
     {
         $service = $this->di['mod_service']('theme');
         $theme = $service->getCurrentAdminAreaTheme();
@@ -60,7 +62,7 @@ class Box_AppAdmin extends Box_App
         $loader = new Box_TwigLoader(
             [
                 'mods' => PATH_MODS,
-                'theme' => PATH_THEMES . DIRECTORY_SEPARATOR . $theme['code'],
+                'theme' => Path::join(PATH_THEMES, $theme['code']),
                 'type' => 'admin',
             ]
         );

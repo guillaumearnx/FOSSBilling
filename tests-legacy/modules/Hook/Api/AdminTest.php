@@ -14,7 +14,7 @@ class AdminTest extends \BBTestCase
         $this->api = new Admin();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->api->setDi($di);
@@ -22,7 +22,7 @@ class AdminTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testgetList()
+    public function testgetList(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Hook\Service::class)->getMock();
 
@@ -30,9 +30,12 @@ class AdminTest extends \BBTestCase
             ->method('getSearchQuery')
             ->willReturn(['SqlString', []]);
 
-        $paginatorMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
+        $paginatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $paginatorMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn([]);
 
         $di = new \Pimple\Container();
@@ -44,7 +47,7 @@ class AdminTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testcall()
+    public function testcall(): void
     {
         $data['event'] = 'testEvent';
 
@@ -64,7 +67,7 @@ class AdminTest extends \BBTestCase
         $this->assertNotEmpty($result);
     }
 
-    public function testcallMissingEventParam()
+    public function testcallMissingEventParam(): void
     {
         $data['event'] = null;
 
@@ -73,7 +76,7 @@ class AdminTest extends \BBTestCase
         $this->assertFalse($result);
     }
 
-    public function testbatchConnect()
+    public function testbatchConnect(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Hook\Service::class)->getMock();
 

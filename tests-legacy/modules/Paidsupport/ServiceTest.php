@@ -14,7 +14,7 @@ class ServiceTest extends \BBTestCase
         $this->service = new Service();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->service->setDi($di);
@@ -22,7 +22,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testenoughInBalanceToOpenTicket()
+    public function testenoughInBalanceToOpenTicket(): void
     {
         $clientModel = new \Model_Client();
         $clientModel->loadBean(new \DummyBean());
@@ -57,7 +57,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testNotenoughInBalanceToOpenTicket()
+    public function testNotenoughInBalanceToOpenTicket(): void
     {
         $clientModel = new \Model_Client();
         $clientModel->loadBean(new \DummyBean());
@@ -94,7 +94,7 @@ class ServiceTest extends \BBTestCase
         $this->service->enoughInBalanceToOpenTicket($clientModel);
     }
 
-    public function testEnoughInBalanceToOpenTicketTicketPriceEqualsTotalAmount()
+    public function testEnoughInBalanceToOpenTicketTicketPriceEqualsTotalAmount(): void
     {
         $clientModel = new \Model_Client();
         $clientModel->loadBean(new \DummyBean());
@@ -129,7 +129,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testEnoughInBalanceToOpenTicketTicketPriceIsNotSet()
+    public function testEnoughInBalanceToOpenTicketTicketPriceIsNotSet(): void
     {
         $clientModel = new \Model_Client();
         $clientModel->loadBean(new \DummyBean());
@@ -161,7 +161,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testonBeforeClientOpenTicketPaidSupportForHelpdeskEnabled()
+    public function testonBeforeClientOpenTicketPaidSupportForHelpdeskEnabled(): void
     {
         $di = new \Pimple\Container();
 
@@ -205,7 +205,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testonBeforeClientOpenTicketPaidSupportForHelpdeskDisabled()
+    public function testonBeforeClientOpenTicketPaidSupportForHelpdeskDisabled(): void
     {
         $di = new \Pimple\Container();
 
@@ -249,7 +249,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testgetTicketPrice()
+    public function testgetTicketPrice(): void
     {
         $di = new \Pimple\Container();
         $paidSupportConfig = [
@@ -267,7 +267,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($paidSupportConfig['ticket_price'], $result);
     }
 
-    public function testgetTicketPriceNotSet()
+    public function testgetTicketPriceNotSet(): void
     {
         $di = new \Pimple\Container();
         $paidSupportConfig = [];
@@ -283,7 +283,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals(0, $result);
     }
 
-    public function testgetErrorMessage()
+    public function testgetErrorMessage(): void
     {
         $di = new \Pimple\Container();
         $errorMessage = 'Not enough funds';
@@ -302,7 +302,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($errorMessage, $result);
     }
 
-    public function testgetErrorMessageNotSet()
+    public function testgetErrorMessageNotSet(): void
     {
         $di = new \Pimple\Container();
         $errorMessage = 'Configure paid support module!';
@@ -319,7 +319,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($errorMessage, $result);
     }
 
-    public function testonAfterClientOpenTicket()
+    public function testonAfterClientOpenTicket(): void
     {
         $di = new \Pimple\Container();
 
@@ -332,13 +332,9 @@ class ServiceTest extends \BBTestCase
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
         $dbMock->expects($this->atLeastOnce())
             ->method('load')
-            ->willReturnCallback(function (...$args) use ($supportTicketModel, $clientModel) {
-                $value = match ($args[0]) {
-                    'SupportTicket' => $supportTicketModel,
-                    'Client' => $clientModel
-                };
-
-                return $value;
+            ->willReturnCallback(fn (...$args) => match ($args[0]) {
+                'SupportTicket' => $supportTicketModel,
+                'Client' => $clientModel,
             });
         $di['db'] = $dbMock;
 
@@ -380,7 +376,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testonAfterClientOpenTicketPaidSupportDisabledForHelpdesk()
+    public function testonAfterClientOpenTicketPaidSupportDisabledForHelpdesk(): void
     {
         $di = new \Pimple\Container();
 
@@ -393,13 +389,9 @@ class ServiceTest extends \BBTestCase
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
         $dbMock->expects($this->atLeastOnce())
             ->method('load')
-            ->willReturnCallback(function (...$args) use ($supportTicketModel, $clientModel) {
-                $value = match ($args[0]) {
-                    'SupportTicket' => $supportTicketModel,
-                    'Client' => $clientModel
-                };
-
-                return $value;
+            ->willReturnCallback(fn (...$args) => match ($args[0]) {
+                'SupportTicket' => $supportTicketModel,
+                'Client' => $clientModel,
             });
         $di['db'] = $dbMock;
 
@@ -434,7 +426,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testgetPaidHelpdeskConfig()
+    public function testgetPaidHelpdeskConfig(): void
     {
         $di = new \Pimple\Container();
         $helpdeskId = 2;
@@ -458,7 +450,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($helpdeskConfig, $result);
     }
 
-    public function testgetPaidHelpdeskConfigIsNotSet()
+    public function testgetPaidHelpdeskConfigIsNotSet(): void
     {
         $di = new \Pimple\Container();
         $paidSupportConfig = [];
@@ -475,7 +467,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEmpty($result);
     }
 
-    public function testhasHelpdeskPaidSupportTurnedOff()
+    public function testhasHelpdeskPaidSupportTurnedOff(): void
     {
         $helpdeskId = 1;
         $helpdeskConfig = [
@@ -492,7 +484,7 @@ class ServiceTest extends \BBTestCase
         $this->assertFalse($result);
     }
 
-    public function testhasHelpdeskPaidSupportTurnedOn()
+    public function testhasHelpdeskPaidSupportTurnedOn(): void
     {
         $helpdeskId = 1;
         $helpdeskConfig = [
@@ -509,7 +501,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testhasHelpdeskPaidSupportConfigNotConfigured()
+    public function testhasHelpdeskPaidSupportConfigNotConfigured(): void
     {
         $helpdeskId = 1;
         $helpdeskConfig = [];
@@ -525,7 +517,7 @@ class ServiceTest extends \BBTestCase
         $this->assertFalse($result);
     }
 
-    public function testPaidSupportAppliedForAllHelpdesksAllHelpdesksAreNotChecked()
+    public function testPaidSupportAppliedForAllHelpdesksAllHelpdesksAreNotChecked(): void
     {
         $di = new \Pimple\Container();
         $helpdeskId = 2;
@@ -549,7 +541,7 @@ class ServiceTest extends \BBTestCase
         $this->assertFalse($result);
     }
 
-    public function testUninstall()
+    public function testUninstall(): void
     {
         $di = new \Pimple\Container();
 
@@ -570,7 +562,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testUninstallConfigNotFound()
+    public function testUninstallConfigNotFound(): void
     {
         $di = new \Pimple\Container();
 
@@ -589,7 +581,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testInstall()
+    public function testInstall(): void
     {
         $di = new \Pimple\Container();
 

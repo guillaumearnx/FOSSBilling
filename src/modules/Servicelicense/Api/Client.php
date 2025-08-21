@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -29,7 +30,7 @@ class Client extends \Api_Abstract
 
     public function _getService(array $data)
     {
-        $required = ['order_id' => 'Order id is required'];
+        $required = ['order_id' => 'Order ID is required'];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
         $client = $this->getIdentity();

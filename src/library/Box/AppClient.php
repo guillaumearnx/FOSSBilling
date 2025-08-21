@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -12,12 +13,13 @@
 use DebugBar\Bridge\NamespacedTwigProfileCollector;
 use FOSSBilling\Environment;
 use FOSSBilling\TwigExtensions\DebugBar;
+use Symfony\Component\Filesystem\Path;
 use Twig\Extension\ProfilerExtension;
 use Twig\Profiler\Profile;
 
 class Box_AppClient extends Box_App
 {
-    protected function init()
+    protected function init(): void
     {
         $m = $this->di['mod']($this->mod);
         $m->registerClientRoutes($this);
@@ -45,12 +47,12 @@ class Box_AppClient extends Box_App
         }
     }
 
-    public function get_index()
+    public function get_index(): string
     {
         return $this->render('mod_index_dashboard');
     }
 
-    public function get_custom_page($page)
+    public function get_custom_page($page): string
     {
         $ext = $this->ext;
         if (str_contains($page, '.')) {
@@ -64,7 +66,7 @@ class Box_AppClient extends Box_App
             return $this->render($tpl, ['post' => $_POST], $ext);
         } catch (Exception $e) {
             if (DEBUG) {
-                error_log($e);
+                error_log($e->getMessage());
             }
         }
         $e = new FOSSBilling\InformationException('Page :url not found', [':url' => $this->url], 404);
@@ -78,10 +80,10 @@ class Box_AppClient extends Box_App
     /**
      * @param string $fileName
      */
-    public function render($fileName, $variableArray = [], $ext = 'html.twig')
+    public function render($fileName, $variableArray = [], $ext = 'html.twig'): string
     {
         try {
-            $template = $this->getTwig()->load($fileName . '.' . $ext);
+            $template = $this->getTwig()->load(Path::changeExtension($fileName, $ext));
         } catch (Twig\Error\LoaderError $e) {
             $this->di['logger']->setChannel('routing')->info($e->getMessage());
             http_response_code(404);
@@ -89,14 +91,14 @@ class Box_AppClient extends Box_App
             throw new FOSSBilling\InformationException('Page not found', null, 404);
         }
 
-        if ($fileName . '.' . $ext == 'mod_page_sitemap.xml') {
+        if ("{$fileName}.{$ext}" == 'mod_page_sitemap.xml') {
             header('Content-Type: application/xml');
         }
 
         return $template->render($variableArray);
     }
 
-    protected function getTwig()
+    protected function getTwig(): Twig\Environment
     {
         $service = $this->di['mod_service']('theme');
         $code = $service->getCurrentClientAreaThemeCode();
@@ -106,7 +108,7 @@ class Box_AppClient extends Box_App
         $loader = new Box_TwigLoader(
             [
                 'mods' => PATH_MODS,
-                'theme' => PATH_THEMES . DIRECTORY_SEPARATOR . $code,
+                'theme' => Path::join(PATH_THEMES, $code),
                 'type' => 'client',
             ]
         );

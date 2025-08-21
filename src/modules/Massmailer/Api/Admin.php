@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -24,8 +24,8 @@ class Admin extends \Api_Abstract
     public function get_list($data)
     {
         [$sql, $params] = $this->getService()->getSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
         foreach ($pager['list'] as $key => $item) {
             $pager['list'][$key] = $this->getService()->toApiArray($item);
         }
@@ -70,7 +70,7 @@ class Admin extends \Api_Abstract
 
         if (isset($data['from_name'])) {
             if (empty($data['from_name'])) {
-                throw new \FOSSBilling\InformationException('Message from name can not be empty');
+                throw new \FOSSBilling\InformationException('Message from name cannot be empty');
             }
             $model->from_name = $data['from_name'];
         }
@@ -312,8 +312,6 @@ Order our services at {{ "order"|link }}
         ];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
-        $model = $this->di['db']->getExistingModelById('mod_massmailer', $data['id'], 'Message not found');
-
-        return $model;
+        return $this->di['db']->getExistingModelById('mod_massmailer', $data['id'], 'Message not found');
     }
 }

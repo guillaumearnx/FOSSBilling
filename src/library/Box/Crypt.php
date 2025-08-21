@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -20,7 +20,7 @@ class Box_Crypt implements FOSSBilling\InjectionAwareInterface
     public function __construct()
     {
         if (!extension_loaded('openssl')) {
-            throw new FOSSBilling\Exception('The PHP openssl extension must be enabled on your server');
+            throw new FOSSBilling\Exception('The PHP OpenSSL extension must be enabled on your server');
         }
     }
 
@@ -34,7 +34,7 @@ class Box_Crypt implements FOSSBilling\InjectionAwareInterface
         return $this->di;
     }
 
-    public function encrypt($text, $pass = null)
+    public function encrypt(string $text, ?string $pass = null)
     {
         $key = $this->_getSalt($pass);
 
@@ -52,7 +52,7 @@ class Box_Crypt implements FOSSBilling\InjectionAwareInterface
         return base64_encode($iv . $ciphertext);
     }
 
-    public function decrypt($text, $pass = null)
+    public function decrypt(?string $text, ?string $pass = null)
     {
         if (is_null($text)) {
             return false;
@@ -73,12 +73,10 @@ class Box_Crypt implements FOSSBilling\InjectionAwareInterface
             $iv
         );
 
-        $result = trim($result);
-
-        return $result;
+        return trim($result);
     }
 
-    private function _getSalt($pass = null)
+    private function _getSalt(?string $pass = null)
     {
         if ($pass == null) {
             $pass = Config::getProperty('info.salt');

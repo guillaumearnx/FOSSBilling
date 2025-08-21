@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -72,8 +72,8 @@ class CentralAlerts implements InjectionAwareInterface
     {
         $alerts = $this->getAlerts();
 
-        if (is_array($type) && !empty($type)) {
-            $alerts = array_filter($alerts, fn ($alert) => in_array($alert['type'], $type));
+        if (!empty($type)) {
+            $alerts = array_filter($alerts, fn ($alert): bool => in_array($alert['type'], $type));
         }
 
         if ($version) {
@@ -116,7 +116,7 @@ class CentralAlerts implements InjectionAwareInterface
         } catch (TransportExceptionInterface|HttpExceptionInterface $e) {
             error_log($e->getMessage());
 
-            throw new Exception('Unable to fetch alerts from Central Alerts System. See error log for more information.', null);
+            throw new Exception('Unable to fetch alerts from Central Alerts System. See the error log for more information.', null);
         }
 
         if (isset($json['error']) && is_array($json['error'])) {

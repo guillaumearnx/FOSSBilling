@@ -14,7 +14,7 @@ class GuestTest extends \BBTestCase
         $this->api = new Guest();
     }
 
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $this->api->setDi($di);
@@ -22,50 +22,7 @@ class GuestTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testgetList()
-    {
-        $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Product\Service::class)->getMock();
-        $serviceMock->expects($this->atLeastOnce())
-            ->method('getProductSearchQuery')
-            ->willReturn(['sqlString', []]);
-
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->getMock();
-        $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
-            ->willReturn(['list' => []]);
-
-        $di = new \Pimple\Container();
-        $di['pager'] = $pagerMock;
-
-        $this->api->setService($serviceMock);
-        $this->api->setDi($di);
-        $result = $this->api->get_list([]);
-        $this->assertIsArray($result);
-    }
-
-    public function testgetPairs()
-    {
-        $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Product\Service::class)->getMock();
-
-        $serviceMock->expects($this->atLeastOnce())
-            ->method('getPairs')
-            ->willReturn([]);
-
-        $this->api->setService($serviceMock);
-        $result = $this->api->get_pairs([]);
-        $this->assertIsArray($result);
-    }
-
-    public function testgetMissingRequiredParams()
-    {
-        $data = [];
-
-        $this->expectException(\FOSSBilling\Exception::class);
-        $this->expectExceptionMessage('Product ID or slug is missing');
-        $this->api->get($data);
-    }
-
-    public function testgetWithSetId()
+    public function testgetWithSetId(): void
     {
         $data = [
             'id' => 1,
@@ -89,7 +46,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetWithSetSlug()
+    public function testgetWithSetSlug(): void
     {
         $data = [
             'slug' => 'product/1',
@@ -113,7 +70,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetProductNotFound()
+    public function testgetProductNotFound(): void
     {
         $data = [
             'slug' => 'product/1',
@@ -135,7 +92,7 @@ class GuestTest extends \BBTestCase
         $this->api->get($data);
     }
 
-    public function testcategoryGetList()
+    public function testcategoryGetList(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Product\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
@@ -150,9 +107,12 @@ class GuestTest extends \BBTestCase
                 0 => ['id' => 1],
             ],
         ];
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->getMock();
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pagerMock->expects($this->atLeastOnce())
-            ->method('getAdvancedResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($pager);
 
         $modelProductCategory = new \Model_ProductCategory();
@@ -172,7 +132,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testcategoryGetPairs()
+    public function testcategoryGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Product\Service::class)->getMock();
         $serviceMock->expects($this->atLeastOnce())
@@ -184,7 +144,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetSliderEmptyList()
+    public function testgetSliderEmptyList(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
         $dbMock->expects($this->atLeastOnce())
@@ -201,7 +161,7 @@ class GuestTest extends \BBTestCase
         $this->assertEquals([], $result);
     }
 
-    public function testgetSlider()
+    public function testgetSlider(): void
     {
         $productModel = new \Model_Product();
         $productModel->loadBean(new \DummyBean());
@@ -232,7 +192,7 @@ class GuestTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testgetSliderJsonFormat()
+    public function testgetSliderJsonFormat(): void
     {
         $productModel = new \Model_Product();
         $productModel->loadBean(new \DummyBean());
@@ -264,6 +224,6 @@ class GuestTest extends \BBTestCase
 
         $result = $this->api->get_slider(['format' => 'json']);
         $this->assertIsString($result);
-        $this->assertIsArray(json_decode($result, 1));
+        $this->assertIsArray(json_decode($result ?? '', true));
     }
 }

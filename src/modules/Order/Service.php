@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -10,6 +12,7 @@
 
 namespace Box\Mod\Order;
 
+use FOSSBilling\InformationException;
 use FOSSBilling\InjectionAwareInterface;
 
 class Service implements InjectionAwareInterface
@@ -219,13 +222,11 @@ class Service implements InjectionAwareInterface
 
                 return $this->di['db']->load($repo_class, $order->service_id);
             } else {
-                $service = $this->di['db']->findOne(
+                return $this->di['db']->findOne(
                     'service_' . $order->service_type,
                     'id = :id',
                     [':id' => $order->service_id]
                 );
-
-                return $service;
             }
         }
 
@@ -253,7 +254,7 @@ class Service implements InjectionAwareInterface
 
     public function getConfig(\Model_ClientOrder $model)
     {
-        return $this->di['tools']->decodeJ($model->config);
+        return json_decode($model->config ?? '', true) ?? [];
     }
 
     public function productHasOrders(\Model_Product $product)
@@ -335,7 +336,7 @@ class Service implements InjectionAwareInterface
         $supportService = $this->di['mod_service']('support');
 
         $data = $this->di['db']->toArray($model);
-        $data['config'] = json_decode($model->config, 1);
+        $data['config'] = json_decode($model->config ?? '', true) ?? [];
         $data['total'] = $this->getTotal($model);
         $data['title'] = $model->title;
         $data['meta'] = $this->di['db']->getAssoc('SELECT name, value FROM client_order_meta WHERE client_order_id = :id', [':id' => $model->id]);
@@ -511,7 +512,7 @@ class Service implements InjectionAwareInterface
         $cartService = $this->di['mod_service']('cart');
         // check stock
         if (!$cartService->isStockAvailable($product, $qty)) {
-            throw new \FOSSBilling\InformationException('Product :id is out of stock.', [':id' => $product->id], 831);
+            throw new InformationException('Product :id is out of stock.', [':id' => $product->id], 831);
         }
 
         // Addons must have defined master order
@@ -549,12 +550,18 @@ class Service implements InjectionAwareInterface
             }
         }
 
+        if (method_exists($se, 'generateOrderTitle')) {
+            $generatedOrderTitle = $se->generateOrderTitle($config);
+        } else {
+            $generatedOrderTitle = null;
+        }
+
         $order = $this->di['db']->dispense('ClientOrder');
         $order->client_id = $client->id;
         $order->product_id = $product->id;
         $order->group_id = ($parent_order) ? $parent_order->group_id : uniqid();
         $order->group_master = ($parent_order) ? 0 : 1;
-        $order->title = $data['title'] ?? $product->title;
+        $order->title = $generatedOrderTitle ?? $data['title'] ?? $product->title;
         $order->currency = $currency->code;
         $order->quantity = $qty;
         $order->service_type = $product->type;
@@ -616,9 +623,14 @@ class Service implements InjectionAwareInterface
             $invoice = $invoiceService->generateForOrder($order);
 
             $invoiceService->approveInvoice($invoice, ['id' => $invoice->id, 'use_credits' => true]);
+
+            // mark invoice as paid on creation
+            if (!empty($data['mark_invoice_paid']) && $invoice instanceof \Model_Invoice) {
+                $invoiceService->markAsPaid($invoice);
+            }
         }
 
-        // activate immediately if say so
+        // activate immediately on creation
         if ($activate) {
             try {
                 $this->activateOrder($order);
@@ -740,7 +752,7 @@ class Service implements InjectionAwareInterface
         if ($productModel instanceof \Model_Product) {
             $this->stockSale($productModel, $order->quantity);
         } else {
-            error_log(sprintf('Order without product ID detected Order #%s', $order->id));
+            error_log("Order without product ID detected Order #{$order->id}.");
         }
 
         $this->saveStatusChange($order, 'Order activated');
@@ -790,7 +802,7 @@ class Service implements InjectionAwareInterface
                 return $repo->$action($o, $service);
             }
         }
-        error_log(sprintf('Service %s does not support action %s', $order->service_type, $action));
+        error_log("Service {$order->service_type} does not support action {$action}.");
 
         return null;
     }
@@ -938,6 +950,13 @@ class Service implements InjectionAwareInterface
             throw $e;
         }
 
+        // do not extend renewal date if this is first paid invoice
+        $invoiceService = $this->di['mod_service']('invoice');
+        $paidInvoices = $invoiceService->findPaidInvoicesForOrder($order);
+        if (count($paidInvoices) <= 1) {
+            return;
+        }
+
         // set automatic order expiration
         if (!empty($order->period)) {
             $from_time = ($order->expires_at === null) ? time() : strtotime($order->expires_at); // from expiration date
@@ -975,7 +994,7 @@ class Service implements InjectionAwareInterface
         }
 
         if ($order->status != \Model_ClientOrder::STATUS_ACTIVE) {
-            throw new \FOSSBilling\InformationException('Only active orders can be suspended');
+            throw new InformationException('Only active orders can be suspended');
         }
 
         $this->_callOnService($order, \Model_ClientOrder::ACTION_SUSPEND);
@@ -1027,7 +1046,7 @@ class Service implements InjectionAwareInterface
         }
 
         if (in_array($order->status, [\Model_ClientOrder::STATUS_CANCELED, \Model_ClientOrder::STATUS_PENDING_SETUP, \Model_ClientOrder::STATUS_FAILED_SETUP])) {
-            throw new \FOSSBilling\Exception('Can not cancel ' . $order->status . ' order');
+            throw new \FOSSBilling\Exception('Cannot cancel ' . $order->status . ' order');
         }
 
         $this->_callOnService($order, \Model_ClientOrder::ACTION_CANCEL);
@@ -1117,7 +1136,7 @@ class Service implements InjectionAwareInterface
         $this->di['db']->trash($model);
     }
 
-    public function deleteFromOrder(\Model_ClientOrder $order)
+    public function deleteFromOrder(\Model_ClientOrder $order, bool $forceDelete = false)
     {
         $this->di['events_manager']->fire(['event' => 'onBeforeAdminOrderDelete', 'params' => ['id' => $order->id]]);
 
@@ -1125,7 +1144,16 @@ class Service implements InjectionAwareInterface
             $this->rmInvoiceItemByOrder($order);
         }
 
-        $this->_callOnService($order, \Model_ClientOrder::ACTION_DELETE);
+        try {
+            $this->_callOnService($order, \Model_ClientOrder::ACTION_DELETE);
+        } catch (\Exception $e) {
+            if (!$forceDelete) {
+                throw $e;
+            } else {
+                error_log("{$e->getMessage()} in {$e->getFile()} : {$e->getFile()}");
+            }
+        }
+
         $id = $order->id;
         $this->rmClientOrderStatusByOrder($order);
         $this->rmOrder($order);
@@ -1203,7 +1231,7 @@ class Service implements InjectionAwareInterface
                 $order = $this->di['db']->getExistingModelById('ClientOrder', $orderArr['id'], 'Order not found');
                 $this->cancelFromOrder($order, $reason);
             } catch (\Exception $e) {
-                error_log($e);
+                error_log($e->getMessage());
             }
         }
 
@@ -1292,13 +1320,13 @@ class Service implements InjectionAwareInterface
         $orderId = $order->id;
         $service = $this->getOrderService($order);
         if (!is_object($service)) {
-            error_log(sprintf('Order #%s has no active service', $orderId));
+            error_log("Order #{$orderId} has no active service.");
 
             return null;
         }
         $srepo = $this->di['mod_service']('service' . $order->service_type);
         if (!method_exists($srepo, 'toApiArray')) {
-            error_log(sprintf('service #%s method toApiArray is missing', $order->service_type));
+            error_log("Service #{$order->service_type} method toApiArray is missing.");
 
             return null;
         }

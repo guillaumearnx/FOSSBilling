@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -43,8 +44,8 @@ class Admin extends \Api_Abstract
         $data['hide_addons'] = (isset($orderConfig['show_addons']) && $orderConfig['show_addons']) ? 0 : 1;
         [$sql, $params] = $this->getService()->getSearchQuery($data);
         $paginator = $this->di['pager'];
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $resultSet = $paginator->getAdvancedResultSet($sql, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $resultSet = $paginator->getPaginatedResultSet($sql, $params, $per_page);
 
         foreach ($resultSet['list'] as $key => $result) {
             $orderObj = $this->di['db']->getExistingModelById('ClientOrder', $result['id'], 'Order not found');
@@ -147,7 +148,7 @@ class Admin extends \Api_Abstract
     public function suspend($data)
     {
         $order = $this->_getOrder($data);
-        $skip_event = isset($data['skip_event']) ? (bool) $data['skip_event'] : false;
+        $skip_event = isset($data['skip_event']) && (bool) $data['skip_event'];
 
         $reason = $data['reason'] ?? null;
 
@@ -179,7 +180,7 @@ class Admin extends \Api_Abstract
     public function cancel($data)
     {
         $order = $this->_getOrder($data);
-        $skip_event = isset($data['skip_event']) ? (bool) $data['skip_event'] : false;
+        $skip_event = isset($data['skip_event']) && (bool) $data['skip_event'];
 
         $reason = $data['reason'] ?? null;
 
@@ -211,16 +212,17 @@ class Admin extends \Api_Abstract
     public function delete($data)
     {
         $order = $this->_getOrder($data);
-        $delete_addons = isset($data['delete_addons']) ? (bool) $data['delete_addons'] : false;
+        $delete_addons = isset($data['delete_addons']) && (bool) $data['delete_addons'];
+        $forceDelete = (bool) ($data['force_delete'] ?? false);
 
         if ($delete_addons) {
             $list = $this->getService()->getOrderAddonsList($order);
             foreach ($list as $addon) {
-                $this->getService()->deleteFromOrder($addon);
+                $this->getService()->deleteFromOrder($addon, $forceDelete);
             }
         }
 
-        return $this->getService()->deleteFromOrder($order);
+        return $this->getService()->deleteFromOrder($order, $forceDelete);
     }
 
     /**
@@ -286,9 +288,9 @@ class Admin extends \Api_Abstract
         $data['client_order_id'] = $order->id;
 
         [$sql, $bindings] = $this->getService()->getOrderStatusSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
 
-        return $this->di['pager']->getSimpleResultSet($sql, $bindings, $per_page);
+        return $this->di['pager']->getPaginatedResultSet($sql, $bindings, $per_page);
     }
 
     /**
@@ -366,10 +368,8 @@ class Admin extends \Api_Abstract
 
     /**
      * Return order addons list.
-     *
-     * @return array
      */
-    public function addons($data)
+    public function addons($data): array
     {
         $model = $this->_getOrder($data);
         $list = $this->getService()->getOrderAddonsList($model);
@@ -405,7 +405,7 @@ class Admin extends \Api_Abstract
         ];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
-        $delete_addons = isset($data['delete_addons']) ? (bool) $data['delete_addons'] : false;
+        $delete_addons = isset($data['delete_addons']) && (bool) $data['delete_addons'];
 
         foreach ($data['ids'] as $id) {
             $this->delete(['id' => $id, 'delete_addons' => $delete_addons]);

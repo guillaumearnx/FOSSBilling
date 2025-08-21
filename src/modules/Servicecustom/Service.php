@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -11,10 +13,18 @@
 namespace Box\Mod\Servicecustom;
 
 use FOSSBilling\Environment;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
 
 class Service implements \FOSSBilling\InjectionAwareInterface
 {
     protected ?\Pimple\Container $di = null;
+    private readonly Filesystem $filesystem;
+
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+    }
 
     public function setDi(\Pimple\Container $di): void
     {
@@ -42,7 +52,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
                 if ($field['readonly'] == 1) {
                     $field_name = $field['name'];
                     if ($data[$field_name] != $field['default_value']) {
-                        throw new \FOSSBilling\InformationException('Field ' . $field['label'] . ' is read only. You can not change its value', null, 5468);
+                        throw new \FOSSBilling\InformationException('Field ' . $field['label'] . ' is read only. You cannot change its value', null, 5468);
                     }
                 }
             }
@@ -176,7 +186,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         try {
             $model = $this->_getOrderService($order);
         } catch (\Exception $e) {
-            error_log($e);
+            error_log($e->getMessage());
 
             return true;
         }
@@ -187,12 +197,12 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         return true;
     }
 
-    public function getConfig(\Model_ServiceCustom $model)
+    public function getConfig(\Model_ServiceCustom $model): array
     {
-        return $this->di['tools']->decodeJ($model->config);
+        return json_decode($model->config ?? '', true) ?? [];
     }
 
-    public function toApiArray(\Model_ServiceCustom $model)
+    public function toApiArray(\Model_ServiceCustom $model): array
     {
         $data = $this->getConfig($model);
         $data['id'] = $model->id;
@@ -260,8 +270,8 @@ class Service implements \FOSSBilling\InjectionAwareInterface
         }
 
         // check if plugin exists. If plugin does not exist, do not throw error. Simply add to log
-        $file = sprintf('Plugin/%s/%s.php', $plugin, $plugin);
-        if (!Environment::isTesting() && !file_exists(PATH_LIBRARY . DIRECTORY_SEPARATOR . $file)) {
+        $file = Path::join('Plugin', $plugin, "{$plugin}.php");
+        if (!Environment::isTesting() && !$this->filesystem->exists(Path::join(PATH_LIBRARY, $file))) {
             $e = new \FOSSBilling\Exception('Plugin class file :file was not found', [':file' => $file], 3124);
             if (DEBUG) {
                 error_log($e->getMessage());
@@ -270,9 +280,10 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             return null;
         }
 
-        require_once $file;
+        require_once Path::normalize($file);
 
-        $config = $this->di['tools']->decodeJ($model->plugin_config);
+        $config = json_decode($model->plugin_config ?? '', true) ?? [];
+
         $adapter = new $plugin($config);
 
         if (!method_exists($adapter, $method)) {

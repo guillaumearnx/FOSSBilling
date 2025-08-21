@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -31,8 +32,9 @@ class Admin extends \Api_Abstract
 
         $model = $this->di['db']->getExistingModelById('Product', $data['id'], 'Product not found');
 
-        if (!isset($_FILES['file_data'])) {
-            throw new \FOSSBilling\Exception('File was not uploaded');
+        $request = $this->di['request'];
+        if (!$request->files->has('file_data')) {
+            throw new \FOSSBilling\Exception('File was not uploaded.');
         }
 
         $service = $this->getService();

@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -30,7 +31,7 @@ class Client extends \Api_Abstract
         $data = $arguments[0];
 
         if (!isset($data['order_id'])) {
-            throw new \FOSSBilling\Exception('Order id is required');
+            throw new \FOSSBilling\Exception('Order ID is required');
         }
         $model = $this->getService()->getServiceCustomByOrderId($data['order_id']);
 

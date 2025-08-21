@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -43,7 +44,7 @@ class Service implements InjectionAwareInterface
         if ($extensionService->isExtensionActive('mod', 'demo')) {
             $ip = null;
         } else {
-            $ip = $this->di['request']->getClientAddress();
+            $ip = $this->di['request']->getClientIp();
         }
 
         $entry = $this->di['db']->dispense('ActivitySystem');
@@ -100,9 +101,39 @@ class Service implements InjectionAwareInterface
         $di['db']->store($log);
     }
 
+    public static function onBeforeAdminCronRun(\Box_Event $event): void
+    {
+        $di = $event->getDi();
+        $config = $di['mod_service']('extension')->getConfig('mod_activity');
+
+        $retention = intval($config['max_age'] ?? 90);
+        $emailRetention = intval($config['email_max_age'] ?? 0);
+
+        if ($retention === 0 && $emailRetention === 0) {
+            return;
+        }
+
+        $ageInSeconds = intval($retention) * 86_400;
+        $emailAgeInSeconds = intval($emailRetention) * 86_400;
+
+        try {
+            if ($retention !== 0) {
+                $di['db']->exec('DELETE FROM activity_admin_history WHERE created_at <= :created_at', [':created_at' => date('Y-m-d H:i:s', time() - $ageInSeconds)]);
+                $di['db']->exec('DELETE FROM activity_client_history WHERE created_at <= :created_at', [':created_at' => date('Y-m-d H:i:s', time() - $ageInSeconds)]);
+                $di['db']->exec('DELETE FROM activity_system WHERE created_at <= :created_at', [':created_at' => date('Y-m-d H:i:s', time() - $ageInSeconds)]);
+            }
+
+            if ($emailRetention !== 0) {
+                $di['db']->exec('DELETE FROM activity_client_email WHERE created_at <= :created_at', [':created_at' => date('Y-m-d H:i:s', time() - $emailAgeInSeconds)]);
+            }
+        } catch (\Exception $e) {
+            error_log($e->getMessage());
+        }
+    }
+
     public function getSearchQuery($data)
     {
-        $sql = 'SELECT m.*, a.id as staff_id, a.email as staff_email, a.name as staff_name, c.id as client_id, CONCAT(c.first_name, " ", c.last_name) as client_name, c.email as client_email
+        $sql = 'SELECT m.*, a.id as staff_id, a.email as staff_email, a.name as staff_name, CONCAT(c.first_name, " ", c.last_name) as client_name, c.email as client_email
                 FROM activity_system as m
                 left join admin as a on a.id = m.admin_id
                 left join client as c on c.id = m.client_id';

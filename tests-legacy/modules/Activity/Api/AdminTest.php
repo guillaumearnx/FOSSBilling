@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Activity\Api;
 
 class AdminTest extends \BBTestCase
 {
-    public function testLogGetList()
+    public function testLogGetList(): void
     {
         $simpleResultArr = [
             'list' => [
@@ -16,15 +16,19 @@ class AdminTest extends \BBTestCase
                 ],
             ],
         ];
-        $paginatorMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
-        $paginatorMock->expects($this->atLeastOnce())
-                    ->method('getSimpleResultSet')
-                    ->willReturn($simpleResultArr);
 
         $service = $this->getMockBuilder('\\' . \Box\Mod\Activity\Service::class)->getMock();
         $service->expects($this->atLeastOnce())
-                ->method('getSearchQuery')
-                ->willReturn('String');
+            ->method('getSearchQuery')
+            ->willReturn(['String', []]);
+
+        $paginatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+            ->onlyMethods(['getPaginatedResultSet'])
+            ->getMock();
+
+        $paginatorMock->expects($this->atLeastOnce())
+            ->method('getPaginatedResultSet')
+            ->willReturn($simpleResultArr);
 
         $model = new \Model_ActivitySystem();
         $model->loadBean(new \DummyBean());
@@ -43,7 +47,7 @@ class AdminTest extends \BBTestCase
         $activity->log_get_list([]);
     }
 
-    public function testLogGetListItemUserClient()
+    public function testLogGetListItemUserClient(): void
     {
         $simpleResultArr = [
             'list' => [
@@ -55,15 +59,19 @@ class AdminTest extends \BBTestCase
                 ],
             ],
         ];
-        $paginatorMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
-        $paginatorMock->expects($this->atLeastOnce())
-                    ->method('getSimpleResultSet')
-                    ->willReturn($simpleResultArr);
 
         $service = $this->getMockBuilder('\\' . \Box\Mod\Activity\Service::class)->getMock();
         $service->expects($this->atLeastOnce())
-                ->method('getSearchQuery')
-                ->willReturn('String');
+            ->method('getSearchQuery')
+            ->willReturn(['String', []]);
+
+        $paginatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+            ->onlyMethods(['getPaginatedResultSet'])
+            ->getMock();
+
+        $paginatorMock->expects($this->atLeastOnce())
+            ->method('getPaginatedResultSet')
+            ->willReturn($simpleResultArr);
 
         $model = new \Model_ActivitySystem();
         $model->loadBean(new \DummyBean());
@@ -82,7 +90,7 @@ class AdminTest extends \BBTestCase
         $activity->log_get_list([]);
     }
 
-    public function testlogEmptyMParam()
+    public function testlogEmptyMParam(): void
     {
         $di = new \Pimple\Container();
 
@@ -92,7 +100,7 @@ class AdminTest extends \BBTestCase
         $this->assertFalse($result, 'Empty array key m');
     }
 
-    public function testlogEmail()
+    public function testlogEmail(): void
     {
         $service = $this->getMockBuilder('\\' . \Box\Mod\Activity\Service::class)->onlyMethods(['logEmail'])->getMock();
         $service->expects($this->atLeastOnce())
@@ -109,14 +117,14 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result, 'Log_email did not returned true');
     }
 
-    public function testlogEmailWithoutSubject()
+    public function testlogEmailWithoutSubject(): void
     {
         $activity = new \Box\Mod\Activity\Api\Admin();
         $result = $activity->log_email([]);
         $this->assertFalse($result);
     }
 
-    public function testlogDelete()
+    public function testlogDelete(): void
     {
         $di = new \Pimple\Container();
 
@@ -149,7 +157,7 @@ class AdminTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testBatchDelete()
+    public function testBatchDelete(): void
     {
         $activityMock = $this->getMockBuilder('\\' . \Box\Mod\Activity\Api\Admin::class)->onlyMethods(['log_delete'])->getMock();
         $activityMock->expects($this->atLeastOnce())->method('log_delete')->willReturn(true);

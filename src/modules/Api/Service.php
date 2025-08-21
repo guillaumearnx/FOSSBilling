@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -42,7 +43,7 @@ class Service implements \FOSSBilling\InjectionAwareInterface
             VALUES(:ip, :request, NOW())
         ';
         $values = [
-            'ip' => $request->getClientAddress(),
+            'ip' => $request->getClientIp(),
             'request' => $_SERVER['REQUEST_URI'] ?? null,
         ];
 

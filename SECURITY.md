@@ -30,7 +30,6 @@ A well-written vulnerability report should include the following information:
 
 Reports covering any of the following topics will be rejected by the FOSSBilling team:
 
-- Reports describing the lack of granular permissions within FOSSBilling. This is a known limitation and the permission system will be completely replaced before FOSSBilling is considered production-ready (version 1.0.0).
 - Reports from automated tools or scanners.
 - Theoretical attacks without proof of exploitability.
 - Attacks that are the result of a third party library should be reported to the library maintainers.
@@ -41,3 +40,10 @@ Reports covering any of the following topics will be rejected by the FOSSBilling
 - Attacks involving physical access to a user’s device, or involving a device or network that’s already seriously compromised (eg man-in-the-middle).
 - The user attacks themselves.
 - Anything in `/tests-legacy` or `tests`.
+
+### A special note on AI tooling
+
+While you are more than welcome to use AI as an additional tool for security research and development, we will never accept something that is fully AI due to the substantial issues in quality control and accuracy.
+AI is a tool and does not replace actual skill and understanding.
+
+**If you are unable to perform security research / development without the assistance of an AI, then please do not attempt to do so for the FOSSBilling project.**

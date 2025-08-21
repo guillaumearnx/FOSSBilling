@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -48,14 +49,14 @@ abstract class Payment_AdapterAbstract
          * Redirect client after successful payment, usually to invoice
          */
         if (!$this->getParam('return_url')) {
-            throw new Payment_Exception('Return URL for payment gateway was not set', [], 6001);
+            throw new Payment_Exception('Return URL for the payment gateway was not set', [], 6001);
         }
 
         /*
          * URL to redirect client if payment process was canceled
          */
         if (!$this->getParam('cancel_url')) {
-            throw new Payment_Exception('Cancel URL for payment gateway was not set', [], 6002);
+            throw new Payment_Exception('Cancel URL for the payment gateway was not set', [], 6002);
         }
 
         /*
@@ -63,7 +64,7 @@ abstract class Payment_AdapterAbstract
          * to inform FOSSBilling about payment
          */
         if (!$this->getParam('notify_url')) {
-            throw new Payment_Exception('IPN Notification URL for payment gateway was not set', [], 6003);
+            throw new Payment_Exception('IPN Notification URL for the payment gateway was not set', [], 6003);
         }
 
         /*
@@ -73,7 +74,7 @@ abstract class Payment_AdapterAbstract
          * as IPN data, and client gets redirected to invoice page.
          */
         if (!$this->getParam('redirect_url')) {
-            throw new Payment_Exception('IPN redirect URL for payment gateway was not set', [], 6004);
+            throw new Payment_Exception('IPN redirect URL for the payment gateway was not set', [], 6004);
         }
 
         $this->init();
@@ -88,10 +89,8 @@ abstract class Payment_AdapterAbstract
 
     /**
      * Return payment gateway type (TYPE_HTML, TYPE_FORM, TYPE_API).
-     *
-     * @return string
      */
-    public function getType()
+    public function getType(): string
     {
         return Payment_AdapterAbstract::TYPE_FORM;
     }
@@ -113,7 +112,7 @@ abstract class Payment_AdapterAbstract
      * invoice id from IPN.
      *
      * @param array $data - Contains $_GET, $_POST, $HTTP_RAW_POST_DATA
-     *                    (or file_get_contents("php://input")) in format like:
+     *                    "php://input" in format like:
      *                    $data = array(
      *                    'get'=>$_GET,
      *                    'post'=>$_POST,
@@ -124,7 +123,7 @@ abstract class Payment_AdapterAbstract
      */
     public function getInvoiceId($data)
     {
-        return isset($data['get']['bb_invoice_id']) ? (int) $data['get']['bb_invoice_id'] : null;
+        return $data['invoice_id'] ?? null;
     }
 
     public function setLog(Box_Log $log)
@@ -182,7 +181,7 @@ abstract class Payment_AdapterAbstract
      */
     public function setTestMode(bool $bool)
     {
-        $this->testMode = (bool) $bool;
+        $this->testMode = $bool;
 
         return $this;
     }

@@ -11,11 +11,11 @@
 {% block content %}
     <div class="row">
         <div class="col-md-12">
-            <div class="card mb-4 bg-white">
-                <div class="card-header bg-white py-3">
+            <div class="card mb-4">
+                <div class="card-header py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="mb-1">{{ 'Wallet'|trans }}</h5>
+                            <h1 class="mb-1">{{ 'Wallet'|trans }}</h1>
                             <span class="small text-muted">{{ 'Here you can manage and track your account balance.'|trans }}</span>
                         </div>
                         <form method="post" class="form-inline api-form d-flex gap-2 justify-content-end" action="{{ 'api/client/invoice/funds_invoice'|link }}" data-api-jsonp="onAfterInvoiceCreated">
@@ -55,8 +55,7 @@
                         </tr>
                         </tfoot>
                     </table>
-                    {% include "partial_pagination.html.twig" with { 'list': transactions } %}
-
+                    {{ include('partial_pagination.html.twig', { 'list': transactions }) }}
                 </div>
             </div>
         </div>

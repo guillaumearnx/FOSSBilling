@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Email\Api;
 
 class Api_ClientTest extends \BBTestCase
 {
-    public function testGetList()
+    public function testGetList(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
         $emailService = new \Box\Mod\Email\Service();
@@ -14,9 +14,12 @@ class Api_ClientTest extends \BBTestCase
                 'id' => 1,
             ],
         ];
-        $pager = $this->getMockBuilder('Box_Pagination')->getMock();
+        $pager = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pager->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($willReturn);
 
         $di = new \Pimple\Container();
@@ -40,7 +43,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result['list']);
     }
 
-    public function testGet()
+    public function testGet(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 
@@ -73,7 +76,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testGetNotFoundException()
+    public function testGetNotFoundException(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 
@@ -103,7 +106,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testResend()
+    public function testResend(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 
@@ -138,7 +141,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResendNotFoundException()
+    public function testResendNotFoundException(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 
@@ -169,7 +172,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testDelete()
+    public function testDelete(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 
@@ -203,7 +206,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testDeleteNotFoundException()
+    public function testDeleteNotFoundException(): void
     {
         $clientApi = new \Box\Mod\Email\Api\Client();
 

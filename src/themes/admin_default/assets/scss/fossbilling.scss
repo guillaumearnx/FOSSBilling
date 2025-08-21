@@ -1,10 +1,17 @@
-@import "~@tabler/core/src/scss/tabler";
-@import "~@tabler/core/src/scss/vendor/_litepicker.scss";
-@import "~@tabler/core/src/scss/vendor/_coloris.scss";
-@import "flags";
+@use "flags";
+
+/* stylelint-disable no-invalid-position-at-import-rule -- @use must be written before other rules. */
+@import "~@tabler/core/scss/tabler.scss";
+@import "~@tabler/core/scss/vendor/_litepicker.scss";
+@import "~@tabler/core/scss/vendor/_coloris.scss";
 @import "~tom-select/dist/css/tom-select.bootstrap5.css";
 @import "theme_settings";
-@import 'sortable-tablesort/sortable-base.css';
+@import 'sortable-tablesort/dist/sortable-base.css';
+/* stylelint-enable no-invalid-position-at-import-rule */
+
+.sticky-nav .nav-link {
+  color: var(--tblr-body-color) !important;
+} /* Override to fix top nav bar text colour in dark mode. Can be removed if tabler fix issue */
 
 body {
     font-family: Verdana, sans-serif;
@@ -62,6 +69,15 @@ body {
 
 .navbar-brand-image {
     height: 1.6rem
+}
+
+@media (min-width: 991px) {
+    .sticky-nav {
+        position: sticky;
+        top: 0;
+        overflow: visible;
+        z-index: 1001;
+    }
 }
 
 @media (max-width: 768px) {

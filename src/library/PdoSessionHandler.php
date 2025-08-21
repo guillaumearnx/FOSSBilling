@@ -1,5 +1,6 @@
 <?php
 
+declare(strict_types=1);
 /*
  * This file is part of the Symfony package.
  *
@@ -15,7 +16,7 @@
  * @author Fabien Potencier <fabien@symfony.com>
  * @author Michael Williams <michael.williams@funsational.com>
  */
-class PdoSessionHandler
+class PdoSessionHandler implements SessionHandlerInterface
 {
     /**
      * @var PDO PDO instance
@@ -58,17 +59,17 @@ class PdoSessionHandler
         $this->dbOptions = ['db_id_col' => 'id', 'db_data_col' => 'content', 'db_time_col' => 'modified_at', ...$dbOptions];
     }
 
-    public function open($path, $name)
+    public function open($path, $name): bool
     {
         return true;
     }
 
-    public function close()
+    public function close(): bool
     {
         return true;
     }
 
-    public function destroy($id)
+    public function destroy($id): bool
     {
         // get table/column
         $dbTable = $this->dbOptions['db_table'];
@@ -82,13 +83,13 @@ class PdoSessionHandler
             $stmt->bindParam(':id', $id, PDO::PARAM_STR);
             $stmt->execute();
         } catch (PDOException $e) {
-            throw new RuntimeException(sprintf('PDOException was thrown when trying to manipulate session data: %s', $e->getMessage()), 0, $e);
+            throw new RuntimeException("PDOException was thrown when trying to manipulate session data: {$e->getMessage()}.", 0, $e);
         }
 
         return true;
     }
 
-    public function gc($lifetime)
+    public function gc($lifetime): int|false
     {
         // get table/column
         $dbTable = $this->dbOptions['db_table'];
@@ -101,14 +102,16 @@ class PdoSessionHandler
             $stmt = $this->pdo->prepare($sql);
             $stmt->bindValue(':time', time() - $lifetime, PDO::PARAM_INT);
             $stmt->execute();
+
+            return $stmt->rowCount();
         } catch (PDOException $e) {
-            throw new RuntimeException(sprintf('PDOException was thrown when trying to manipulate session data: %s', $e->getMessage()), 0, $e);
+            throw new RuntimeException("PDOException was thrown when trying to manipulate session data: {$e->getMessage()}.", 0, $e);
         }
 
-        return true;
+        return false;
     }
 
-    public function read($id)
+    public function read($id): string|false
     {
         // get table/columns
         $dbTable = $this->dbOptions['db_table'];
@@ -135,11 +138,11 @@ class PdoSessionHandler
 
             return '';
         } catch (PDOException $e) {
-            throw new RuntimeException(sprintf('PDOException was thrown when trying to read the session data: %s', $e->getMessage()), 0, $e);
+            throw new RuntimeException("PDOException was thrown when trying to read the session data: {$e->getMessage()}.", 0, $e);
         }
     }
 
-    public function write($id, $data)
+    public function write($id, $data): bool
     {
         // get table/column
         $dbTable = $this->dbOptions['db_table'];
@@ -187,7 +190,7 @@ class PdoSessionHandler
                 }
             }
         } catch (PDOException $e) {
-            throw new RuntimeException(sprintf('PDOException was thrown when trying to write the session data: %s', $e->getMessage()), 0, $e);
+            throw new RuntimeException("PDOException was thrown when trying to write the session data: {$e->getMessage()}.", 0, $e);
         }
 
         return true;

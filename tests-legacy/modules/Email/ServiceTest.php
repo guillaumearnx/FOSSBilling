@@ -4,7 +4,7 @@ namespace Box\Tests\Mod\Email;
 
 class ServiceTest extends \BBTestCase
 {
-    public function testDi()
+    public function testDi(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -67,7 +67,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('getSearchQueryProvider')]
-    public function testGetSearchQuery($data, $query, $bindings)
+    public function testGetSearchQuery($data, $query, $bindings): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -82,7 +82,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result[1], $bindings);
     }
 
-    public function testEmailFindOneForClientById()
+    public function testEmailFindOneForClientById(): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -114,7 +114,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result->client_id, $activityEmail->client_id);
     }
 
-    public function testEmailRmByClient()
+    public function testEmailRmByClient(): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -142,7 +142,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testEmailRm()
+    public function testEmailRm(): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -163,7 +163,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testEmailToApiArray()
+    public function testEmailToApiArray(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -206,7 +206,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, $expected);
     }
 
-    public function testSetVars()
+    public function testSetVars(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -230,7 +230,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testGetVars()
+    public function testGetVars(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -239,15 +239,12 @@ class ServiceTest extends \BBTestCase
 
         $cryptMock = $this->getMockBuilder('\Box_Crypt')->getMock();
         $cryptMock->expects($this->atLeastOnce())
-            ->method('decrypt');
+            ->method('decrypt')
+            ->willReturn('{"param1":"value1"}');
+
         $expected = ['param1' => 'value1'];
-        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
-        $toolsMock->expects($this->atLeastOnce())
-            ->method('decodeJ')
-            ->willReturn($expected);
 
         $di['db'] = $db;
-        $di['tools'] = $toolsMock;
         $di['crypt'] = $cryptMock;
         $service->setDi($di);
 
@@ -259,7 +256,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($expected, $result);
     }
 
-    public function testSendTemplateNotExists()
+    public function testSendTemplateNotExists(): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -307,7 +304,7 @@ class ServiceTest extends \BBTestCase
         $this->assertFalse($result);
     }
 
-    public function testSendTemplateExists()
+    public function testSendTemplateExists(): void
     {
         $data = [
             'code' => 'mod_email_test',
@@ -406,7 +403,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('sendTemplateExistsStaffProvider')]
-    public function testSendTemplateExistsStaff($data, $clientGetExpects, $staffgetListExpects)
+    public function testSendTemplateExistsStaff($data, $clientGetExpects, $staffgetListExpects): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Email\Service::class)
             ->onlyMethods(['sendMail'])
@@ -512,7 +509,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResend()
+    public function testResend(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -601,7 +598,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('templateGetSearchQueryProvider')]
-    public function testTemplateGetSearchQuery($data, $query, $bindings)
+    public function testTemplateGetSearchQuery($data, $query, $bindings): void
     {
         $service = new \Box\Mod\Email\Service();
         $di = new \Pimple\Container();
@@ -616,7 +613,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result[1], $bindings);
     }
 
-    public function testTemplateToApiArray()
+    public function testTemplateToApiArray(): void
     {
         $id = 1;
         $action_code = 'code';
@@ -652,7 +649,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, $expected);
     }
 
-    public function testTemplateToApiArrayDeep()
+    public function testTemplateToApiArrayDeep(): void
     {
         $id = 1;
         $action_code = 'code';
@@ -728,7 +725,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('template_updateProvider')]
-    public function testTemplateUpdate($data, $templateRenderExpects)
+    public function testTemplateUpdate($data, $templateRenderExpects): void
     {
         $id = random_int(1, 100);
         $model = new \Model_EmailTemplate();
@@ -747,17 +744,12 @@ class ServiceTest extends \BBTestCase
         $cryptMock->expects($this->atLeastOnce())
             ->method('decrypt');
         $configMock = ['salt' => md5(random_bytes(13))];
-        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
-        $toolsMock->expects($this->atLeastOnce())
-            ->method('decodeJ')
-            ->willReturn([]);
 
         $twigMock = $this->getMockBuilder(\Twig\Environment::class)->disableOriginalConstructor()->getMock();
 
         $di = new \Pimple\Container();
         $di['db'] = $db;
         $di['logger'] = $loggerMock;
-        $di['tools'] = $toolsMock;
         $di['crypt'] = $cryptMock;
         $di['config'] = $configMock;
         $di['twig'] = $twigMock;
@@ -775,7 +767,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($result, true);
     }
 
-    public function testGetEmailById()
+    public function testGetEmailById(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -798,7 +790,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($id, $result->id);
     }
 
-    public function testGetEmailByIdException()
+    public function testGetEmailByIdException(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -815,7 +807,7 @@ class ServiceTest extends \BBTestCase
         $service->getEmailById(5);
     }
 
-    public function testTemplateCreate()
+    public function testTemplateCreate(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -863,7 +855,7 @@ class ServiceTest extends \BBTestCase
     }
 
     #[\PHPUnit\Framework\Attributes\DataProvider('batchTemplateGenerateProvider')]
-    public function testBatchTemplateGenerate($findOneReturn, $isExtensionActiveReturn, $findOneExpects, $dispenseExpects)
+    public function testBatchTemplateGenerate($findOneReturn, $isExtensionActiveReturn, $findOneExpects, $dispenseExpects): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -895,7 +887,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testTemplateBatchDisable()
+    public function testTemplateBatchDisable(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -914,7 +906,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result, true);
     }
 
-    public function testTemplateBatchEnable()
+    public function testTemplateBatchEnable(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -933,7 +925,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result, true);
     }
 
-    public function testbatchSend()
+    public function testbatchSend(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -985,7 +977,7 @@ class ServiceTest extends \BBTestCase
         $this->assertNull($result);
     }
 
-    public function testResetTemplateByCode()
+    public function testResetTemplateByCode(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -1003,17 +995,12 @@ class ServiceTest extends \BBTestCase
         $cryptMock->expects($this->atLeastOnce())
             ->method('decrypt');
         $configMock = ['salt' => md5(random_bytes(13))];
-        $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
-        $toolsMock->expects($this->atLeastOnce())
-            ->method('decodeJ')
-            ->willReturn([]);
 
         $twigMock = $this->getMockBuilder(\Twig\Environment::class)->disableOriginalConstructor()->getMock();
 
         $di = new \Pimple\Container();
         $di['db'] = $db;
         $di['logger'] = $this->getMockBuilder('Box_Log')->getMock();
-        $di['tools'] = $toolsMock;
         $di['crypt'] = $cryptMock;
         $di['config'] = $configMock;
         $di['twig'] = $twigMock;
@@ -1029,7 +1016,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResetTemplateByCodeException()
+    public function testResetTemplateByCodeException(): void
     {
         $service = new \Box\Mod\Email\Service();
 
@@ -1046,7 +1033,7 @@ class ServiceTest extends \BBTestCase
         $service->resetTemplateByCode('mod_email_test');
     }
 
-    public function testsendMail()
+    public function testsendMail(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')->getMock();
 

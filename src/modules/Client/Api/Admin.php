@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -25,9 +26,9 @@ class Admin extends \Api_Abstract
      */
     public function get_list($data)
     {
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
         [$sql, $params] = $this->getService()->getSearchQuery($data);
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
 
         foreach ($pager['list'] as $key => $clientArr) {
             $client = $this->di['db']->getExistingModelById('Client', $clientArr['id'], 'Client not found');
@@ -146,7 +147,7 @@ class Admin extends \Api_Abstract
 
         $service = $this->getService();
         if ($service->emailAlreadyRegistered($data['email'])) {
-            throw new \FOSSBilling\InformationException('Email is already registered.');
+            throw new \FOSSBilling\InformationException('This email address is already registered.');
         }
 
         $validator->isPasswordStrong($data['password']);
@@ -236,7 +237,7 @@ class Admin extends \Api_Abstract
             $email = $data['email'];
             $email = $this->di['tools']->validateAndSanitizeEmail($email);
             if ($service->emailAlreadyRegistered($email, $client)) {
-                throw new \FOSSBilling\InformationException('Can not change email. It is already registered.');
+                throw new \FOSSBilling\InformationException('This email address is already registered.');
             }
         }
 
@@ -352,8 +353,8 @@ class Admin extends \Api_Abstract
     {
         $service = $this->di['mod_service']('Client', 'Balance');
         [$q, $params] = $service->getSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($q, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($q, $params, $per_page);
 
         foreach ($pager['list'] as $key => $item) {
             $pager['list'][$key] = [
@@ -446,8 +447,8 @@ class Admin extends \Api_Abstract
     public function login_history_get_list($data)
     {
         [$q, $params] = $this->getService()->getHistorySearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($q, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($q, $params, $per_page);
 
         foreach ($pager['list'] as $key => $item) {
             $pager['list'][$key] = [

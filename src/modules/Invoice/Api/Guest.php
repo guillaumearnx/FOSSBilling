@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -59,7 +60,7 @@ class Guest extends \Api_Abstract
             throw new \FOSSBilling\Exception('Invoice was not found');
         }
         if ($invoice->status == 'paid') {
-            throw new \FOSSBilling\InformationException('Paid Invoice can not be modified');
+            throw new \FOSSBilling\InformationException('Paid Invoice cannot be modified');
         }
 
         $updateParams = [];

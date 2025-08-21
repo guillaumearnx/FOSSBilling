@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -16,7 +16,7 @@ class Session implements InjectionAwareInterface
 {
     private ?\Pimple\Container $di = null;
 
-    public function setDi(\Pimple\Container|null $di): void
+    public function setDi(?\Pimple\Container $di): void
     {
         $this->di = $di;
     }
@@ -39,14 +39,7 @@ class Session implements InjectionAwareInterface
         $this->canUseSession();
 
         if (!headers_sent()) {
-            session_set_save_handler(
-                $this->handler->open(...),
-                $this->handler->close(...),
-                $this->handler->read(...),
-                $this->handler->write(...),
-                $this->handler->destroy(...),
-                $this->handler->gc(...)
-            );
+            session_set_save_handler($this->handler);
         }
 
         $currentCookieParams = session_get_cookie_params();
@@ -136,7 +129,7 @@ class Session implements InjectionAwareInterface
             $this->di['db']->store($session);
         }
 
-        $storedFingerprint = json_decode($session->fingerprint, true);
+        $storedFingerprint = json_decode($session->fingerprint ?? '', true);
         if (!$fingerprint->checkFingerprint($storedFingerprint) && Config::getProperty('security.perform_session_fingerprinting', true)) {
             // TODO: Trying to use monolog here causes a 503 error with an empty error log. Would love to find out why and use it instead of error_log
             $invalid = true;

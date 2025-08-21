@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -30,8 +31,8 @@ class Client extends \Api_Abstract
         } else {
             [$query, $bindings] = $this->getService()->getSearchQuery($data);
         }
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getAdvancedResultSet($query, $bindings, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($query, $bindings, $per_page);
 
         foreach ($pager['list'] as $key => $item) {
             $order = $this->di['db']->getExistingModelById('ClientOrder', $item['id'], 'Client order not found');
@@ -55,10 +56,8 @@ class Client extends \Api_Abstract
 
     /**
      * Get order addons.
-     *
-     * @return array
      */
-    public function addons($data)
+    public function addons($data): array
     {
         $model = $this->_getOrder($data);
         $list = $this->getService()->getOrderAddonsList($model);

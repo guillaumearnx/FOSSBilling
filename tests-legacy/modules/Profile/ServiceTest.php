@@ -6,7 +6,7 @@ use Box\Mod\Profile\Service;
 
 class ServiceTest extends \BBTestCase
 {
-    public function testDi()
+    public function testDi(): void
     {
         $service = new Service();
         $di = new \Pimple\Container();
@@ -15,7 +15,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testgetAdminIdentityArray()
+    public function testgetAdminIdentityArray(): void
     {
         $model = new \Model_Admin();
         $model->loadBean(new \DummyBean());
@@ -25,7 +25,7 @@ class ServiceTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testUpdateAdmin()
+    public function testUpdateAdmin(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -59,7 +59,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testGenerateNewApiKey()
+    public function testGenerateNewApiKey(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -89,7 +89,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testChangeAdminPassword()
+    public function testChangeAdminPassword(): void
     {
         $password = 'new_pass';
         $emMock = $this->getMockBuilder('\Box_EventManager')
@@ -104,7 +104,7 @@ class ServiceTest extends \BBTestCase
             ->method('store')
             ->willReturn(true);
 
-        $passwordMock = $this->getMockBuilder('\Box_Password')->getMock();
+        $passwordMock = $this->getMockBuilder('\FOSSBilling\PasswordManager')->getMock();
         $passwordMock->expects($this->atLeastOnce())
             ->method('hashIt')
             ->with($password);
@@ -125,7 +125,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testUpdateClient()
+    public function testUpdateClient(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -143,8 +143,8 @@ class ServiceTest extends \BBTestCase
         $modMock->expects($this->atLeastOnce())
             ->method('getConfig')
             ->willReturn([
-                                          'disable_change_email' => 0,
-                                      ]);
+                'disable_change_email' => 0,
+            ]);
 
         $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
         $toolsMock->expects($this->atLeastOnce())->method('validateAndSanitizeEmail');
@@ -204,7 +204,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testUpdateClientEmailChangeNotAllowedException()
+    public function testUpdateClientEmailChangeNotAllowedException(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -222,8 +222,8 @@ class ServiceTest extends \BBTestCase
         $modMock->expects($this->atLeastOnce())
             ->method('getConfig')
             ->willReturn([
-                                          'disable_change_email' => 1,
-                                      ]);
+                'disable_change_email' => 1,
+            ]);
 
         $clientServiceMock = $this->getMockBuilder('\\' . \Box\Mod\Client\Service::class)->getMock();
         $clientServiceMock->expects($this->never())->
@@ -250,7 +250,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testUpdateClientEmailAlreadyRegisteredException()
+    public function testUpdateClientEmailAlreadyRegisteredException(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -268,8 +268,8 @@ class ServiceTest extends \BBTestCase
         $modMock->expects($this->atLeastOnce())
             ->method('getConfig')
             ->willReturn([
-                                          'disable_change_email' => 0,
-                                      ]);
+                'disable_change_email' => 0,
+            ]);
 
         $toolsMock = $this->getMockBuilder('\\' . \FOSSBilling\Tools::class)->getMock();
         $toolsMock->expects($this->atLeastOnce())->method('validateAndSanitizeEmail');
@@ -300,7 +300,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testResetApiKey()
+    public function testResetApiKey(): void
     {
         $dbMock = $this->getMockBuilder('\Box_Database')
             ->getMock();
@@ -322,7 +322,7 @@ class ServiceTest extends \BBTestCase
         $this->assertEquals(strlen($result), 32);
     }
 
-    public function testChangeClientPassword()
+    public function testChangeClientPassword(): void
     {
         $emMock = $this->getMockBuilder('\Box_EventManager')
             ->getMock();
@@ -338,7 +338,7 @@ class ServiceTest extends \BBTestCase
 
         $password = 'new password';
 
-        $passwordMock = $this->getMockBuilder('\Box_Password')->getMock();
+        $passwordMock = $this->getMockBuilder('\FOSSBilling\PasswordManager')->getMock();
         $passwordMock->expects($this->atLeastOnce())
             ->method('hashIt')
             ->with($password);
@@ -358,7 +358,7 @@ class ServiceTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testLogoutClient()
+    public function testLogoutClient(): void
     {
         $sessionMock = $this->getMockBuilder('\\' . \FOSSBilling\Session::class)
             ->disableOriginalConstructor()

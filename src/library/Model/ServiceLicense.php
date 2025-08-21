@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -9,34 +11,23 @@
  */
 class Model_ServiceLicense extends RedBeanPHP\SimpleModel
 {
-    private function _decodeJson($j)
+    public function getAllowedIps(): array
     {
-        if (isset($j)) {
-            $config = json_decode($j, true);
-
-            return is_array($config) ? $config : [];
-        } else {
-            return [];
-        }
+        return json_decode($this->ips ?? '', true) ?? [];
     }
 
-    public function getAllowedIps()
+    public function getAllowedVersions(): array
     {
-        return $this->_decodeJson($this->ips);
+        return json_decode($this->versions ?? '', true) ?? [];
     }
 
-    public function getAllowedVersions()
+    public function getAllowedHosts(): array
     {
-        return $this->_decodeJson($this->versions);
+        return json_decode($this->hosts ?? '', true) ?? [];
     }
 
-    public function getAllowedHosts()
+    public function getAllowedPaths(): array
     {
-        return $this->_decodeJson($this->hosts);
-    }
-
-    public function getAllowedPaths()
-    {
-        return $this->_decodeJson($this->paths);
+        return json_decode($this->paths ?? '', true) ?? [];
     }
 }

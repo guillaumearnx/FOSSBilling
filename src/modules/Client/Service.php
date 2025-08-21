@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -199,9 +199,9 @@ class Service implements InjectionAwareInterface
         ];
     }
 
-    public function emailAlreadyRegistered($new_email, \Model_Client $model = null)
+    public function emailAlreadyRegistered($new_email, ?\Model_Client $model = null)
     {
-        if ($model && $model->email == $new_email) {
+        if ($model instanceof \Model_Client && $model->email == $new_email) {
             return false;
         }
 
@@ -222,12 +222,12 @@ class Service implements InjectionAwareInterface
 
         $invoice = $this->di['db']->findOne('Invoice', 'client_id = :client_id', [':client_id' => $model->id]);
         if ($invoice instanceof \Model_Invoice) {
-            throw new \FOSSBilling\InformationException('Currency can not be changed. Client already have invoices issued.');
+            throw new \FOSSBilling\InformationException('Currency cannot be changed. Client already has invoices issued.');
         }
 
         $order = $this->di['db']->findOne('ClientOrder', 'client_id = :client_id', [':client_id' => $model->id]);
         if ($order instanceof \Model_ClientOrder) {
-            throw new \FOSSBilling\InformationException('Currency can not be changed. Client already have orders.');
+            throw new \FOSSBilling\InformationException('Currency cannot be changed. Client already has orders.');
         }
 
         return true;
@@ -236,7 +236,7 @@ class Service implements InjectionAwareInterface
     public function addFunds(\Model_Client $client, $amount, $description, array $data = [])
     {
         if (!$client->currency) {
-            throw new \FOSSBilling\InformationException('Define clients currency before adding funds.');
+            throw new \FOSSBilling\InformationException('You must define the client\'s currency before adding funds.');
         }
 
         if (!is_numeric($amount)) {
@@ -265,9 +265,8 @@ class Service implements InjectionAwareInterface
     public function getExpiredPasswordReminders()
     {
         $expire_after_hours = 2;
-        $expired = $this->di['db']->find('ClientPasswordReset', 'UNIX_TIMESTAMP() - ? > UNIX_TIMESTAMP(created_at)', [$expire_after_hours * 60 * 60]);
 
-        return $expired;
+        return $this->di['db']->find('ClientPasswordReset', 'UNIX_TIMESTAMP() - ? > UNIX_TIMESTAMP(created_at)', [$expire_after_hours * 60 * 60]);
     }
 
     public function getHistorySearchQuery($data)
@@ -334,12 +333,10 @@ class Service implements InjectionAwareInterface
 
     public function getByLoginDetails($email, $password)
     {
-        $client = $this->di['db']->findOne('Client', 'email = ? and pass = ? and status = ?', [$email, $password, \Model_Client::ACTIVE]);
-
-        return $client;
+        return $this->di['db']->findOne('Client', 'email = ? and pass = ? and status = ?', [$email, $password, \Model_Client::ACTIVE]);
     }
 
-    public function toApiArray(\Model_Client $model, $deep = false, $identity = null)
+    public function toApiArray(\Model_Client $model, $deep = false, $identity = null): array
     {
         $details = [
             'id' => $model->id,
@@ -404,9 +401,7 @@ class Service implements InjectionAwareInterface
                 WHERE client_id = ?
                 GROUP BY client_id';
 
-        $balance = $this->di['db']->getCell($sql, [$c->id]);
-
-        return $balance;
+        return $this->di['db']->getCell($sql, [$c->id]);
     }
 
     public function get($data)
@@ -469,7 +464,7 @@ class Service implements InjectionAwareInterface
     {
         $client = $this->di['db']->findOne('Client', 'client_group_id = ?', [$model->id]);
         if ($client) {
-            throw new \FOSSBilling\Exception('Can not remove group with clients');
+            throw new \FOSSBilling\Exception('Cannot remove groups with clients');
         }
 
         $this->di['db']->trash($model);
@@ -551,10 +546,10 @@ class Service implements InjectionAwareInterface
     public function guestCreateClient(array $data)
     {
         $event_params = $data;
-        $event_params['ip'] = $this->di['request']->getClientAddress();
+        $event_params['ip'] = $this->di['request']->getClientIp();
         $this->di['events_manager']->fire(['event' => 'onBeforeClientSignUp', 'params' => $event_params]);
 
-        $data['ip'] = $this->di['request']->getClientAddress();
+        $data['ip'] = $this->di['request']->getClientIp();
         $data['status'] = \Model_Client::ACTIVE;
         $client = $this->createClient($data);
 
@@ -597,9 +592,6 @@ class Service implements InjectionAwareInterface
     public function authorizeClient($email, $plainTextPassword)
     {
         $model = $this->di['db']->findOne('Client', 'email = ? AND status = ?', [$email, \Model_Client::ACTIVE]);
-        if ($model == null) {
-            return null;
-        }
 
         return $this->di['auth']->authorizeUser($model, $plainTextPassword);
     }
@@ -630,7 +622,7 @@ class Service implements InjectionAwareInterface
             && isset($config['disable_change_email'])
             && $config['disable_change_email']
         ) {
-            throw new \FOSSBilling\InformationException('Email can not be changed');
+            throw new \FOSSBilling\InformationException('Email address cannot be changed');
         }
 
         return true;

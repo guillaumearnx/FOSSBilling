@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -160,10 +161,92 @@ class Server_Manager_Directadmin extends Server_Manager
     public function changeAccountPackage(Server_Account $account, Server_Package $package): bool
     {
         $fields = [
-            'action' => 'package',
             'user' => $account->getUsername(),
             'package' => $account->getPackage()->getName(),
         ];
+
+        // Match the package name with a server package, if it exists. Otherwise, use custom values.
+        $packageName = $package->getName() ?? $package->getCustomValue('package');
+        $serverPackages = $this->getUserPackages();
+        if (in_array($packageName, $serverPackages)) {
+            $this->getLog()->info("Using DirectAdmin package name: {$packageName}.");
+
+            $fields['action'] = 'package';
+            $fields['package'] = $account->getPackage()->getName();
+        } else {
+            $this->getLog()->info("Using custom package values: {$packageName} does not exist on the server.");
+
+            $fields['action'] = 'customize'; // Use customize action for custom package values.
+            $fields = array_merge($fields, [
+                'aftp' => $package->getCustomValue('aftp') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will be able to have anonymous ftp accounts.
+                'bandwidth' => $package->getBandwidth(), // Bandwidth quota in MB
+                'catchall' => $package->getCustomValue('catchall') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to enable and customize a catch-all email (*@domain.com).
+                'cgi' => $package->getCustomValue('cgi') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to run cgi scripts in their cgi-bin.
+                'cron' => $package->getCustomValue('cron') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to create cronjobs.
+                'dnscontrol' => $package->getCustomValue('dnscontrol') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will be able to modify his/her dns records.
+                'domainptr' => $package->getMaxParkedDomains(), // Domain pointer quota
+                'ftp' => $package->getMaxFtp(), // FTP account quota
+                'login_keys' => $package->getCustomValue('login_keys') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have access to the Login Key system for extra account passwords.
+                'mysql' => $package->getMaxSql(), // Database quota
+                'nemailf' => $package->getMaxEmailForwarders(), // Email forwarder quota
+                'nemailml' => $package->getMaxEmailLists(), // Mailing list quota
+                'nemailr' => $package->getMaxEmailAutoresponders(), // Autoresponder quota
+                'nemails' => $package->getMaxPop(), // Email account quota
+                'nsubdomains' => $package->getMaxSubdomains(), // Subdomain quota
+                'php' => $package->getCustomValue('php') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to run php scripts.
+                'quota' => $package->getQuota(), // Disk space quota in MB
+                'spam' => $package->getCustomValue('spam') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to run scan email with SpamAssassin.
+                'ssh' => $package->getCustomValue('ssh') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have an ssh account.
+                'ssl' => $package->getCustomValue('ssl') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have the ability to access their websites through secure https://.
+                'suspend_at_limit' => $package->getCustomValue('suspend_at_limit') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will be suspended if their User bandwidth limit is exceeded.
+                'sysinfo' => $package->getCustomValue('sysinfo') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will have access to a page that shows the system information.
+                'vdomains' => $package->getMaxDomains(), // Domain quota
+            ]);
+
+            if ($package->getBandwidth() == 'unlimited') {
+                $fields['ubandwidth'] = 'ON'; // ON or OFF. If ON, bandwidth is ignored and no limit is set
+            }
+
+            if ($package->getQuota() == 'unlimited') {
+                $fields['uquota'] = 'ON'; // ON or OFF. If ON, quota is ignored and no limit is set
+            }
+
+            if ($package->getMaxDomains() == 'unlimited') {
+                $fields['uvdomains'] = 'ON'; // ON or OFF. If ON, vdomains is ignored and no limit is set
+            }
+
+            if ($package->getMaxSubdomains() == 'unlimited') {
+                $fields['unsubdomains'] = 'ON'; // ON or OFF. If ON, nsubdomains is ignored and no limit is set
+            }
+
+            if ($package->getMaxParkedDomains() == 'unlimited') {
+                $fields['udomainptr'] = 'ON'; // ON or OFF Unlimited option for domainptr
+            }
+
+            if ($package->getMaxPop() == 'unlimited') {
+                $fields['unemails'] = 'ON'; // ON or OFF Unlimited option for nemails
+            }
+
+            if ($package->getMaxSql() == 'unlimited') {
+                $fields['umysql'] = 'ON'; // ON or OFF Unlimited option for mysql
+            }
+
+            if ($package->getMaxFtp() == 'unlimited') {
+                $fields['uftp'] = 'ON'; // ON or OFF Unlimited option for ftp
+            }
+
+            if ($fields['nemailf'] == 'unlimited') {
+                $fields['unemailf'] = 'ON'; // ON or OFF Unlimited option for nemailf
+            }
+
+            if ($fields['nemailml'] == 'unlimited') {
+                $fields['unemailml'] = 'ON'; // ON or OFF Unlimited option for nemailml
+            }
+
+            if ($fields['nemailr'] == 'unlimited') {
+                $fields['unemailr'] = 'ON'; // ON or OFF Unlimited option for nemailr
+            }
+        }
 
         $this->request('API_MODIFY_USER', $fields);
 
@@ -242,12 +325,15 @@ class Server_Manager_Directadmin extends Server_Manager
             'notify' => 'no',
         ];
 
-        // If the `package` custom value is set, use that package from the DirectAdmin server instead of implicitly creating a new one
-        if (!empty($package->getCustomValue('package'))) {
-            $this->getLog()->info('Using DirectAdmin package name: ' . $package->getCustomValue('package') . ', ignoring package settings');
-            $fields['package'] = $package->getCustomValue('package');
+        // Match the package name with a server package, if it exists. Otherwise, use custom values.
+        $packageName = $package->getName() ?? $package->getCustomValue('package');
+        $serverPackages = $this->getUserPackages();
+        if (in_array($packageName, $serverPackages)) {
+            $this->getLog()->info("Using DirectAdmin package name: {$packageName}.");
+            $fields['package'] = $packageName;
         } else {
-            // Specify the package quotas
+            $this->getLog()->info("Using custom package values: {$packageName} does not exist on the server.");
+
             $fields = array_merge($fields, [
                 'aftp' => $package->getCustomValue('aftp') ? 'ON' : 'OFF', // ON or OFF. If ON, the User will be able to have anonymous ftp accounts.
                 'bandwidth' => $package->getBandwidth(), // Bandwidth quota in MB
@@ -324,8 +410,7 @@ class Server_Manager_Directadmin extends Server_Manager
         if ($account->getReseller()) {
             $command = 'ACCOUNT_RESELLER';
 
-            $fields['ips'] = 1; // Number of ips that will be allocated to the Reseller upon account during account
-            $fields['ip'] = 'assign';
+            $fields['ip'] = 'shared'; // Workaround: use shared IP for reseller accounts until support for dedicated IPs is added.
         }
 
         try {
@@ -339,7 +424,7 @@ class Server_Manager_Directadmin extends Server_Manager
         }
 
         if (str_contains(implode('', $results), 'Unable to assign the Reseller ANY ips')) {
-            throw new Server_Exception('Unable to assign the Reseller ANY ips. Make sure to have free, un-assigned ips.');
+            throw new Server_Exception('Unable to assign the Reseller ANY IPs. Make sure to have free, unassigned IPs.');
         }
 
         if (str_contains(implode('', $results), 'Error Creating User')) {
@@ -356,8 +441,10 @@ class Server_Manager_Directadmin extends Server_Manager
      * @param Server_Account|null $account The server account. This parameter is not used in this method.
      *
      * @return string the login URL
+     *
+     * @throws Server_Exception
      */
-    public function getResellerLoginUrl(Server_Account $account = null): string
+    public function getResellerLoginUrl(?Server_Account $account = null): string
     {
         return $this->getLoginUrl();
     }
@@ -371,12 +458,28 @@ class Server_Manager_Directadmin extends Server_Manager
      * @param Server_Account|null $account The server account. This parameter is not used in this method.
      *
      * @return string the login URL
+     *
+     * @throws Server_Exception
      */
-    public function getLoginUrl(Server_Account $account = null): string
+    public function getLoginUrl(?Server_Account $account = null): string
     {
         $protocol = $this->_config['secure'] ? 'https://' : 'http://';
 
-        return $protocol . $this->_config['host'] . ':' . $this->getPort();
+        if (!$account) {
+            return $protocol . $this->_config['host'] . ':' . $this->getPort();
+        }
+
+        $fields = [
+            'action' => 'create',
+            'expiry' => '30m', // when the URL expires, so does the user session
+            'login_keys_notify_on_creation' => 0,
+            'redirect-url' => $protocol . $this->_config['host'] . ':' . $this->getPort(),
+            'type' => 'one_time_url',
+        ];
+
+        $result = $this->request('API_LOGIN_KEYS', $fields, true, $account->getUsername());
+
+        return $result['details'];
     }
 
     /**
@@ -602,7 +705,7 @@ class Server_Manager_Directadmin extends Server_Manager
      *
      * @throws Server_Exception if there is an error while sending the request or if the server returns an error
      */
-    private function request(string $command, array $fields = [], bool $post = true): array
+    private function request(string $command, array $fields = [], bool $post = true, string $asUser = ''): array
     {
         // Get the host from the configuration
         $host = $this->_config['host'];
@@ -613,9 +716,15 @@ class Server_Manager_Directadmin extends Server_Manager
         // Build the field string for the request
         $field_string = http_build_query($fields);
 
+        // Support login-as for non-admin functions
+        $username = $this->_config['username'];
+        if ($asUser) {
+            $username .= '|' . $asUser;
+        }
+
         // Get the HTTP client with the basic authentication and timeout options set
         $httpClient = $this->getHttpClient()->withOptions([
-            'auth_basic' => [$this->_config['username'], $this->_config['password']],
+            'auth_basic' => [$username, $this->_config['password']],
             'timeout' => 60,
             'verify_host' => false,
             'verify_peer' => false,
@@ -736,5 +845,23 @@ class Server_Manager_Directadmin extends Server_Manager
         ];
 
         return $this->request('API_SHOW_USER_CONFIG', $fields);
+    }
+
+    /**
+     * Retrieves the list of user packages on the DirectAdmin server.
+     *
+     * @return array the list of user packages available on the DirectAdmin server
+     *
+     * @throws Server_Exception if there is an error while sending the request to the server
+     */
+    private function getUserPackages(): array
+    {
+        $results = $this->request('API_PACKAGES_USER');
+
+        if (isset($results['error']) && $results['error'] == 1) {
+            throw new Server_Exception('Failed to retrieve user packages: ' . $results['text'] . ': ' . $results['details']);
+        }
+
+        return $results['list'] ?? [];
     }
 }

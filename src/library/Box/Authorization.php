@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -26,12 +27,21 @@ class Box_Authorization
         return (bool) $this->session->get('admin');
     }
 
-    public function authorizeUser($user, $plainTextPassword)
+    public function authorizeUser(?object $user, string $plainTextPassword)
     {
+        if ($user === null) {
+            // 25 to 100ms delay
+            usleep(random_int(25000, 100000));
+            $this->di['password']->dummyVerify($plainTextPassword);
+
+            return null;
+        }
+
         $user = $this->passwordBackwardCompatibility($user, $plainTextPassword);
         if ($this->di['password']->verify($plainTextPassword, $user->pass)) {
             if ($this->di['password']->needsRehash($user->pass)) {
                 $user->pass = $this->di['password']->hashIt($plainTextPassword);
+                $user->updated_at = date('Y-m-d H:i:s');
                 $this->di['db']->store($user);
             }
 

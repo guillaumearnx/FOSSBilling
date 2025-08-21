@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -26,8 +28,8 @@ class Admin extends \Api_Abstract
         $service = $this->getService();
 
         [$sql, $params] = $service->getProductSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
         foreach ($pager['list'] as $key => $item) {
             $model = $this->di['db']->getExistingModelById('Product', $item['id'], 'Post not found');
             $pager['list'][$key] = $this->getService()->toApiArray($model, false, $this->getIdentity());
@@ -99,7 +101,7 @@ class Admin extends \Api_Abstract
 
         $types = $service->getTypes();
         if (!array_key_exists($data['type'], $types)) {
-            throw new \FOSSBilling\Exception('Product type :type is not registered', [':type' => $data['type']], 413);
+            throw new \FOSSBilling\Exception('Product type :type is not registered.', [':type' => $data['type']], 413);
         }
 
         $categoryId = $data['product_category_id'] ?? null;
@@ -124,7 +126,7 @@ class Admin extends \Api_Abstract
      * @optional bool $hidden - product visibility flag
      * @optional bool $stock_control - product stock control flag.
      * @optional bool $allow_quantity_select - client can select product quantity on order form flag
-     * @optional bool $quantity_in_stock - quantity available for sale. When out of stock, new order can not be placed.
+     * @optional bool $quantity_in_stock - quantity available for sale. When out of stock, new order cannot be placed.
      *
      * @return bool
      *
@@ -247,7 +249,7 @@ class Admin extends \Api_Abstract
      * @optional bool $hidden - product visibility flag
      * @optional bool $stock_control - product stock control flag.
      * @optional bool $allow_quantity_select - client can select product quantity on order form flag
-     * @optional bool $quantity_in_stock - quantity available for sale. When out of stock, new order can not be placed.
+     * @optional bool $quantity_in_stock - quantity available for sale. When out of stock, new order cannot be placed.
      *
      * @return bool
      *
@@ -405,8 +407,8 @@ class Admin extends \Api_Abstract
     {
         $service = $this->getService();
         [$sql, $params] = $service->getPromoSearchQuery($data);
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
         foreach ($pager['list'] as $key => $item) {
             $model = $this->di['db']->getExistingModelById('Promo', $item['id'], 'Promo not found');
             $pager['list'][$key] = $this->getService()->toPromoApiArray($model);
@@ -539,8 +541,6 @@ class Admin extends \Api_Abstract
         ];
         $this->di['validator']->checkRequiredParamsForArray($required, $data);
 
-        $model = $this->di['db']->getExistingModelById('Product', $data['id'], 'Product not found');
-
-        return $model;
+        return $this->di['db']->getExistingModelById('Product', $data['id'], 'Product not found');
     }
 }

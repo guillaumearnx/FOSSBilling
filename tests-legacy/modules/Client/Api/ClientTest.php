@@ -4,7 +4,7 @@ namespace Box\Mod\Client\Api;
 
 class ClientTest extends \BBTestCase
 {
-    public function testgetDi()
+    public function testgetDi(): void
     {
         $di = new \Pimple\Container();
         $client = new Client();
@@ -13,7 +13,7 @@ class ClientTest extends \BBTestCase
         $this->assertEquals($di, $getDi);
     }
 
-    public function testbalanceGetList()
+    public function testbalanceGetList(): void
     {
         $data = [];
 
@@ -31,9 +31,12 @@ class ClientTest extends \BBTestCase
             ],
         ];
 
-        $pagerMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
+        $pagerMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $pagerMock->expects($this->atLeastOnce())
-            ->method('getSimpleResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($simpleResultArr);
 
         $model = new \Model_ClientBalance();
@@ -58,7 +61,7 @@ class ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testbalanceGetTotal()
+    public function testbalanceGetTotal(): void
     {
         $balanceAmount = 0.00;
         $model = new \Model_Client();
@@ -82,7 +85,7 @@ class ClientTest extends \BBTestCase
         $this->assertEquals($balanceAmount, $result);
     }
 
-    public function testisTaxable()
+    public function testisTaxable(): void
     {
         $clientIsTaxable = true;
 

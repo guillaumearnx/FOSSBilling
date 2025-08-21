@@ -1,6 +1,8 @@
 <?php
+
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -61,16 +63,13 @@ class Server implements \FOSSBilling\InjectionAwareInterface
         }
 
         $ips_arr = explode(',', $ip);
-        $ip = trim($ips_arr[0]);
 
-        return $ip;
+        return trim($ips_arr[0]);
     }
 
     public function process($data)
     {
-        if (!is_array($data)) {
-            $data = json_decode($data, true) ?: [];
-        }
+        $data = (!is_array($data)) ? json_decode($data ?? '', true) : [];
 
         if (empty($data)) {
             throw new \LogicException('Invalid request. Parameters missing?', 1000);

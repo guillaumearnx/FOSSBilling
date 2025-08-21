@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -51,9 +51,21 @@ class Guest extends \Api_Abstract
     }
 
     /**
+     * Gets the ISO defaults for a given currency code.
+     */
+    public function get_currency_defaults(array $data): array
+    {
+        if (!isset($data['code'])) {
+            throw new \FOSSBilling\InformationException('Currency code not provided');
+        }
+
+        return $this->getService()->getCurrencyDefaults($data['code']);
+    }
+
+    /**
      * Format price by currency settings.
      *
-     * @optional bool $convert - covert to default currency rate. Default - true;
+     * @optional bool $convert - convert to default currency rate. Default - true;
      * @optional bool $without_currency - Show only number. No symbols are attached Default - false;
      * @optional float $price - Price to be formatted. Default 0
      * @optional string $code - currency code, ie: USD. Default - default currency

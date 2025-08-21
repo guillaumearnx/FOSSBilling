@@ -14,16 +14,19 @@ class Api_ClientTest extends \BBTestCase
         $this->clientApi = new \Box\Mod\Support\Api\Client();
     }
 
-    public function testTicketGetList()
+    public function testTicketGetList(): void
     {
         $simpleResultArr = [
             'list' => [
                 ['id' => 1],
             ],
         ];
-        $paginatorMock = $this->getMockBuilder('\Box_Pagination')->disableOriginalConstructor()->getMock();
+        $paginatorMock = $this->getMockBuilder('\\' . \FOSSBilling\Pagination::class)
+        ->onlyMethods(['getPaginatedResultSet'])
+        ->disableOriginalConstructor()
+        ->getMock();
         $paginatorMock->expects($this->atLeastOnce())
-            ->method('getAdvancedResultSet')
+            ->method('getPaginatedResultSet')
             ->willReturn($simpleResultArr);
 
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
@@ -60,7 +63,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testTicketGet()
+    public function testTicketGet(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['findOneByClient', 'toApiArray'])->getMock();
@@ -93,7 +96,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testHelpdeskGetPairs()
+    public function testHelpdeskGetPairs(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['helpdeskGetPairs'])->getMock();
@@ -107,7 +110,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsArray($result);
     }
 
-    public function testTicketCreate()
+    public function testTicketCreate(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['ticketCreateForClient'])->getMock();
@@ -146,7 +149,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsInt($result);
     }
 
-    public function testTicketReply()
+    public function testTicketReply(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['canBeReopened', 'ticketReply'])->getMock();
@@ -187,7 +190,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertTrue($result);
     }
 
-    public function testTicketReplyCanNotBeReopenedException()
+    public function testTicketReplyCanNotBeReopenedException(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['canBeReopened', 'ticketReply'])->getMock();
@@ -228,7 +231,7 @@ class Api_ClientTest extends \BBTestCase
         $this->assertIsInt($result);
     }
 
-    public function testTicketClose()
+    public function testTicketClose(): void
     {
         $serviceMock = $this->getMockBuilder('\\' . \Box\Mod\Support\Service::class)
             ->onlyMethods(['findOneByClient', 'closeTicket'])->getMock();

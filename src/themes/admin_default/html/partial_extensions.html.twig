@@ -10,7 +10,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="extension-name"></h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
                 </div>
                 <div id="extension-readme" class="modal-body">
                 </div>
@@ -19,8 +19,8 @@
                 </div>
             </div>
         </div>
-    </div>    
-    <table class="table card-table table-vcenter table-striped text-nowrap sortable">
+    </div>
+    <table class="table card-table table-vcenter table-striped sortable">
         <thead>
         <tr>
             <th class="no-sort"></th>
@@ -46,7 +46,7 @@
                     {{ extension.description|truncate(150) }}<br>
                     <a href="https://extensions.fossbilling.org/extension/{{ extension.id }}" target="_blank">{{ 'View on the extension directory'|trans }}</a>
                 </td>
-                <td  data-bs-toggle="tooltip" data-bs-title="{{ 'View extension readme'|trans }}">
+                <td  data-bs-toggle="tooltip" data-bs-title="{{ 'View extension README'|trans }}">
                     <a class="btn btn-icon" data-bs-toggle="modal" data-bs-target="#extensionReadMe" onclick="getExtensionReadme('{{ extension.id }}', '{{ extension.name }}');">
                      <svg class="icon">
                          <use xlink:href="#eye" />

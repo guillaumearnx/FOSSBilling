@@ -8,7 +8,7 @@ class DiTest extends PHPUnit\Framework\TestCase
         $this->di = clone $di;
     }
 
-    public function testInjector()
+    public function testInjector(): void
     {
         $di = $this->di;
         $this->assertInstanceOf('Box_Mod', $di['mod']('admin'));
@@ -17,7 +17,7 @@ class DiTest extends PHPUnit\Framework\TestCase
         $this->assertTrue(isset($di['pdo']));
         $this->assertTrue(isset($di['db']));
 
-        $this->assertInstanceOf('Box_Pagination', $di['pager']);
+        $this->assertInstanceOf('\\' . FOSSBilling\Pagination::class, $di['pager']);
         $this->assertInstanceOf('Box_Url', $di['url']);
         $this->assertInstanceOf('Box_EventManager', $di['events_manager']);
 
@@ -40,7 +40,7 @@ class DiTest extends PHPUnit\Framework\TestCase
         $this->assertInstanceOf('\\' . Box\Mod\Theme\Model\Theme::class, $di['theme']);
         $this->assertInstanceOf('\Model_Cart', $di['cart']);
         $this->assertInstanceOf('\\' . GeoIp2\Database\Reader::class, $di['geoip']);
-        $this->assertInstanceOf('\Box_Password', $di['password']);
+        $this->assertInstanceOf('\FOSSBilling\PasswordManager', $di['password']);
         $this->assertInstanceOf('\Box_Translate', $di['translate']());
     }
 }

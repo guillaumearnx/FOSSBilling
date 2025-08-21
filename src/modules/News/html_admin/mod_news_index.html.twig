@@ -9,14 +9,14 @@
 {% block content %}
     <ul class="nav nav-tabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link active" href="#tab-index" data-bs-toggle="tab" role="tab">{{ 'News and announcements'|trans }}</a>
+            <a class="nav-link active" href="#tab-index" data-bs-toggle="tab" role="tab">{{ 'News & Announcements'|trans }}</a>
         </li>
         <li>
             <a class="nav-link" href="#tab-new" data-bs-toggle="tab" role="tab">
                 <svg class="icon me-2">
                     <use xlink:href="#plus" />
                 </svg>
-                {{ 'New announcement'|trans }}
+                {{ 'New Announcement'|trans }}
             </a>
         </li>
     </ul>
@@ -24,7 +24,7 @@
 <div class="card">
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-index" role="tabpanel">
-            {% include 'partial_search.html.twig' %}
+            {{ include('partial_search.html.twig') }}
             <table class="table card-table table-vcenter table-striped text-nowrap sortable">
                 <thead>
                     <tr>
@@ -84,8 +84,8 @@
             </table>
 
             <div class="card-footer d-flex align-items-center justify-content-between">
-                {% include 'partial_batch_delete.html.twig' with { 'action': 'admin/news/batch_delete' } %}
-                {% include 'partial_pagination.html.twig' with { 'list': posts, 'url': 'news/index' } %}
+                {{ include('partial_batch_delete.html.twig', { 'action': 'admin/news/batch_delete' }) }}
+                {{ include('partial_pagination.html.twig', { 'list': posts, 'url': 'news/index' }) }}
             </div>
         </div>
 
@@ -116,7 +116,7 @@
                         <label class="form-label col-3 col-form-label">{{ 'Content'|trans }}</label>
                         <div class="col">
                             <textarea class="bb-textarea" name="content" rows="10">{{ request.content }}</textarea>
-                            <small class="mt-2 form-hint">If the text is very long you can use <strong>&lt;!--more--&gt;</strong> tag. Inserting this tag within the post will create and excerpt of text (before the tag) to be displayed in posts list. Users will be able to see whole content when they click on "Read more" button.</small>
+                            <small class="mt-2 form-hint">{{ 'If the text is very long you can use <strong>&lt;!--more--&gt;</strong> tag. Inserting this tag within the post will create and excerpt of text (before the tag) to be displayed in posts list. Users will be able to see whole content when they click on "Read more" button.'|trans|raw }}</small>
                         </div>
                     </div>
 

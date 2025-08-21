@@ -21,21 +21,21 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: 'PHP Build' 
-        uses: FOSSBilling/.workflows/.github/actions/php-build@8749327430a3e843ec6c1c997d4568575ab2f364
+        uses: FOSSBilling/.workflows/.github/actions/php-build@3e9ace8872ed7d0961a73e7677d19cd9f58846df
         with:
           cache-deps: 'false'
           composer-args: '--prefer-dist --no-dev --optimize-autoloader'
-          php-version: 8.1
+          php-version: 8.2
 
       - name: 'Install Node.js and Enable Caching'
         uses: actions/setup-node@v4
         with:
           cache: 'npm'
           cache-dependency-path: '**/package-lock.json'
-          node-version: 20
+          node-version: 22
 
       - name: 'Install Node.js Dependencies'
         run: npm ci
@@ -44,19 +44,17 @@ jobs:
         run: npm run build
 
       - name: 'Download Latest Translations'
-        uses: robinraju/release-downloader@v1.9
-        with:
-          repository: 'FOSSBilling/locale'
-          latest: true
-          fileName: 'translations.zip'
-          out-file-path: './src/locale'
-          extract: true
+        run: |
+          wget https://github.com/FOSSBilling/locale/releases/latest/download/translations.zip -O translations.zip
+          mkdir -p ./src/locale
+          unzip -o translations.zip -d ./src/locale
 
       - name: 'Copy Required Files and Clean-up'
         run: |
           cp README.md ./src/
           cp LICENSE ./src/
-          rm ./src/locale/translations.zip
+          rm translations.zip
+          rm -rf ./src/themes/admin_default/node_modules/
 
       - name: 'Add Short Commit Hash as the Release Vesion'
         if: ${{ inputs.preview }}
@@ -76,6 +74,12 @@ jobs:
         working-directory: ./src/library/FOSSBilling
         env:
           SENTRY_DSN: ${{ vars.SENTRY_DSN }}
+
+      - name: 'Correct the file & folder permissions'
+        run: |
+          cd ./src/
+          find . -type d -exec chmod 755 {} \;
+          find . -type f -exec chmod 644 {} \;
 
       - name: 'Create Release Build Archive'
         run: tar -cvf /tmp/build.tar -C ./src/ ./

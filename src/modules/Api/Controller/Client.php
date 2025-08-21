@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -18,12 +19,19 @@ namespace Box\Mod\Api\Controller;
 use FOSSBilling\Config;
 use FOSSBilling\Environment;
 use FOSSBilling\InjectionAwareInterface;
+use Symfony\Component\Filesystem\Filesystem;
 
 class Client implements InjectionAwareInterface
 {
     private int|float|null $_requests_left = null;
     private $_api_config;
+    private readonly Filesystem $filesystem;
     protected ?\Pimple\Container $di = null;
+
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+    }
 
     public function setDi(\Pimple\Container $di): void
     {
@@ -64,9 +72,9 @@ class Client implements InjectionAwareInterface
         $p = $_POST;
 
         // adding support for raw post input with json string
-        $input = file_get_contents('php://input');
+        $input = $this->filesystem->readFile('php://input');
         if (empty($p) && !empty($input)) {
-            $p = @json_decode($input, 1);
+            $p = @json_decode($input, true);
         }
 
         $call = $class . '_' . $method;
@@ -102,10 +110,14 @@ class Client implements InjectionAwareInterface
         }
 
         $isLoginMethod = false;
+
         if ($method == 'staff_login' || $method == 'client_login') {
+            $isLoginMethod = true;
             $rate_span = $this->_api_config['rate_span_login'];
             $rate_limit = $this->_api_config['rate_limit_login'];
-            $isLoginMethod = true;
+
+            // 25 to 250ms delay to help prevent email enumeration.
+            usleep(random_int(25000, 250000));
         } else {
             $rate_span = $this->_api_config['rate_span'];
             $rate_limit = $this->_api_config['rate_limit'];
@@ -124,7 +136,7 @@ class Client implements InjectionAwareInterface
     private function checkHttpReferer()
     {
         // snake oil: check request is from the same domain as FOSSBilling is installed if present
-        $check_referer_header = isset($this->_api_config['require_referrer_header']) ? (bool) $this->_api_config['require_referrer_header'] : false;
+        $check_referer_header = isset($this->_api_config['require_referrer_header']) && (bool) $this->_api_config['require_referrer_header'];
         if ($check_referer_header) {
             $url = strtolower(SYSTEM_URL);
             $referer = isset($_SERVER['HTTP_REFERER']) ? strtolower($_SERVER['HTTP_REFERER']) : null;
@@ -259,7 +271,7 @@ class Client implements InjectionAwareInterface
         return true;
     }
 
-    public function renderJson($data = null, \Exception $e = null)
+    public function renderJson($data = null, ?\Exception $e = null)
     {
         // do not emit response if headers already sent
         if (headers_sent()) {
@@ -275,8 +287,8 @@ class Client implements InjectionAwareInterface
         header('X-RateLimit-Span: ' . $this->_api_config['rate_span']);
         header('X-RateLimit-Limit: ' . $this->_api_config['rate_limit']);
         header('X-RateLimit-Remaining: ' . $this->_requests_left);
-        if ($e !== null) {
-            error_log($e->getMessage() . ' ' . $e->getCode());
+        if ($e instanceof \Exception) {
+            error_log("{$e->getMessage()} {$e->getCode()}.");
             $code = $e->getCode() ?: 9999;
             $result = ['result' => null, 'error' => ['message' => $e->getMessage(), 'code' => $code]];
             $authFailed = [201, 202, 206, 204, 205, 203, 403, 1004, 1002];
@@ -295,7 +307,7 @@ class Client implements InjectionAwareInterface
 
     private function _getIp()
     {
-        return $this->di['request']->getClientAddress();
+        return $this->di['request']->getClientIp();
     }
 
     /**
@@ -311,7 +323,7 @@ class Client implements InjectionAwareInterface
             return true;
         }
 
-        $input = file_get_contents('php://input') ?? '';
+        $input = $this->filesystem->readFile('php://input') ?? '';
         $data = json_decode($input);
         if (!is_object($data)) {
             $data = new \stdClass();

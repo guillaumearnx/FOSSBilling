@@ -1,6 +1,7 @@
 <?php
+
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -26,9 +27,9 @@ class Admin extends \Api_Abstract
     public function log_get_list($data)
     {
         $data['no_debug'] = true;
-        $per_page = $data['per_page'] ?? $this->di['pager']->getPer_page();
+        $per_page = $data['per_page'] ?? $this->di['pager']->getDefaultPerPage();
         [$sql, $params] = $this->getService()->getSearchQuery($data);
-        $pager = $this->di['pager']->getSimpleResultSet($sql, $params, $per_page);
+        $pager = $this->di['pager']->getPaginatedResultSet($sql, $params, $per_page);
 
         foreach ($pager['list'] as $key => $item) {
             if (isset($item['staff_id'])) {
@@ -68,7 +69,7 @@ class Admin extends \Api_Abstract
         $entry->message = $data['m'];
         $entry->created_at = date('Y-m-d H:i:s');
         $entry->updated_at = date('Y-m-d H:i:s');
-        $entry->ip = $this->di['request']->getClientAddress();
+        $entry->ip = $this->di['request']->getClientIp();
         $this->di['db']->store($entry);
 
         return true;

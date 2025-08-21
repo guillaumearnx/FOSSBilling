@@ -290,12 +290,12 @@
 </div>
 
 <div class="card" id="reply-box">
-    <form method="post" action="{{ 'api/admin/support/ticket_reply'|link }}" class="api-form" data-api-redirect="{{ 'support'|alink({ 'status': 'open' }) }}">
+    <form method="post" action="{{ 'api/admin/support/ticket_reply'|link }}" class="api-form" data-api-reload="1">
         <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
         <div class="card-body">
             <div class="d-flex">
                 <h5>{{ 'Reply as'|trans }} {{ profile.name }}</h5>
-                <div class="ms-auto">{% include 'mod_support_canned_selector.html.twig' %}</div>
+                <div class="ms-auto">{{ include('mod_support_canned_selector.html.twig') }}</div>
             </div>
 
             <textarea class="bb-textarea" id="rt" name="content" rows="10" required>{{ 'Hello'|trans }} {{ ticket.client.first_name }},

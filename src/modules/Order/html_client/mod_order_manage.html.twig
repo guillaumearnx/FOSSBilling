@@ -8,12 +8,16 @@
 
 {% block body_class %}order-manage{% endblock %}
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ 'service' | link}}">{{ 'Services'|trans }}</a></li>
+<li class="breadcrumb-item"><a href="{{ 'order/service' | link}}">{{ 'Services'|trans }}</a></li>
 <li class="breadcrumb-item active" aria-current="page">{{ order.title }}</li>
 {% endblock %}
 
 {% set service_partial = "mod_service" ~ order.service_type ~ "_manage.html.twig" %}
 {% set upgradables = client.order_upgradables({ 'id': order.id }) %}
+
+{% block head %}
+    {{ mf.wysiwyg('.editor-textarea') }}
+{% endblock %}
 
 {% block content %}
     <div class="row">
@@ -23,7 +27,7 @@
                 <div class="card-header py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="mb-1">{{ 'Service details'|trans }}</h5>
+                            <h1 class="mb-1">{{ 'Service details'|trans }}</h1>
                             <span class="small text-secondary">{{ 'All information about your service'|trans }}</span>
                         </div>
                     </div>
@@ -114,7 +118,7 @@
             {# Service management #}
             {% if guest.system_template_exists({ 'file': service_partial }) %}
                 {% set service = client.order_service({ 'id': order.id }) %}
-                {% include service_partial with { 'order': order, 'service': service } %}
+                {{ include(service_partial, { 'order': order, 'service': service }) }}
             {% endif %}
 
             {# Order addons #}
@@ -123,7 +127,7 @@
                 <div class="card-header py-3 py-3">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <h5 class="mb-1">{{ 'Addons'|trans }}</h5>
+                            <h1 class="mb-1">{{ 'Addons'|trans }}</h1>
                             <span class="small text-secondary">{{ 'Addons you have ordered with this service'|trans }}</span>
                         </div>
                     </div>
@@ -166,7 +170,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h1 class="modal-title fs-5">{{ 'Submit cancellation request'|trans }}</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
                         </div>
                         <form action="" method="post" id="cancel-request-form" class="request-cancellation">
                             <div class="modal-body">
@@ -200,7 +204,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h1 class="modal-title fs-5">{{ 'Submit new support ticket'|trans }}</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
                         </div>
                         <form action="" method="post" id="open-ticket-form" class="open-ticket">
                             <div class="modal-body">
@@ -217,7 +221,7 @@
                                 </div>
                                 <div class="mb-3">
                                     <label for="content" class="form-label">{{ 'Message'|trans }}</label>
-                                    <textarea class="form-control" id="content" name="content" rows="5" required>{{ request.content|e }}</textarea>
+                                    <textarea class="editor-textarea form-control" id="content" name="content" rows="5" required>{{ request.content|e }}</textarea>
                                 </div>
                             </div>
                             <div class="modal-footer">
@@ -233,7 +237,7 @@
                     <div class="modal-content">
                         <div class="modal-header">
                             <h1 class="modal-title fs-5">{{ 'Submit upgrade request'|trans }}</h1>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="{{ 'Close'|trans }}"></button>
                         </div>
                         <form action="" method="post" id="upgrade-request-form" class="request-upgrade">
                             <div class="modal-body">

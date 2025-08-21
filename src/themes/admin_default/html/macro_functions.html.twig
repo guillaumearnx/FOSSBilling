@@ -35,6 +35,15 @@
             {% endfor %}
             </select>
         </div>
+        {% elseif element[0] == 'multiselect' %}
+        <label class="form-label col-3 col-form-label">{{ element[1].label }}{% if element[1].description %} - {{ element[1].description }}{% endif %}</label>
+        <div class="col">
+            <select class="form-select" name="config[{{ name }}]" multiple>
+            {% for k, v in element[1].multiOptions %}
+                <option value="{{ k }}"{% if k == values[name] %} selected{% endif %}/><label>{{ v }}</label>
+            {% endfor %}
+            </select>
+        </div>
         {% elseif element[0] == 'radio' %}
         <label class="form-label col-3 col-form-label">{{ element[1].label }}{% if element[1].description %} - {{ element[1].description }}{% endif %}</label>
         <div class="col">
@@ -101,7 +110,30 @@
     {{ c.format|replace({'{{price}}': p }) }}
 {% endmacro %}
 
-{% macro status_name(status) %}{% if status %}{{ status|replace({'_': " "})|title|trans }}{% else %}-{% endif %}{% endmacro %}
+{% macro status_name(status) %}
+    {% set status = status|replace({'_': " "})|title|trim %}
+    {% if status == 'Active' %}
+        {{ 'Active'|trans }}
+    {% elseif status == 'Pending Setup' %}
+        {{ 'Pending Setup'|trans }}
+    {% elseif status == 'Failed Setup' %}
+        {{ 'Failed Setup'|trans }}
+    {% elseif status == 'Failed Renew' %}
+        {{ 'Failed Renewal'|trans }}
+    {% elseif status == 'Suspended' %}
+        {{ 'Suspended'|trans }}
+    {% elseif status == 'Canceled' %}
+        {{ 'Canceled'|trans }}
+    {% elseif status == 'Paid' %}
+        {{ 'Paid'|trans }}
+    {% elseif status == 'Unpaid' %}
+        {{ 'Unpaid'|trans }}
+    {% elseif status == 'Refunded' %}
+        {{ 'Refunded'|trans }}
+    {% else %}
+        {{ status|trans }}
+    {% endif %}
+{% endmacro %}
 
 {% macro period_name(period) %}
     {{ guest.system_period_title({"code":period}) }}
@@ -116,7 +148,7 @@
 
 {% macro bb_editor(selector) %}
 {% if guest.extension_is_on({"mod":"wysiwyg"}) %}
-{% include "mod_wysiwyg_js.html.twig" with {"class":selector|trim('.#')} %}
+{{ include('mod_wysiwyg_js.html.twig', { 'class': selector|trim('.#') }) }}
 {% else %}
 <!-- No WYSIWYG, no fancy stuff. Enable the WYSIWYG extension for a better management experience. -->
 {% endif %}
@@ -128,7 +160,7 @@
         <form method="get" action="">
             <input type="hidden" name="CSRFToken" value="{{ CSRFToken }}"/>
             <input type="hidden" name="_url" value="{{request._url}}"/>
-            <label>{% trans %}Search:{% endtrans %} <input type="text" name="search" placeholder="{% trans %}Enter search text..{% endtrans %}" value="{{request.search}}"><div class="srch"></div></label>
+            <label>{{ 'Search:'|trans }} <input type="text" name="search" placeholder="{{ 'Enter search text...'|trans }}" value="{{ request.search }}"><div class="srch"></div></label>
         </form>
     </div>
 </div>

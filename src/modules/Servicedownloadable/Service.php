@@ -1,7 +1,8 @@
 <?php
 
+declare(strict_types=1);
 /**
- * Copyright 2022-2023 FOSSBilling
+ * Copyright 2022-2025 FOSSBilling
  * Copyright 2011-2021 BoxBilling, Inc.
  * SPDX-License-Identifier: Apache-2.0.
  *
@@ -13,10 +14,15 @@ namespace Box\Mod\Servicedownloadable;
 
 use FOSSBilling\Environment;
 use FOSSBilling\InjectionAwareInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\Filesystem\Path;
+use Symfony\Component\HttpFoundation\HeaderUtils;
+use Symfony\Component\HttpFoundation\Response;
 
 class Service implements InjectionAwareInterface
 {
     protected ?\Pimple\Container $di = null;
+    private readonly Filesystem $filesystem;
 
     public function setDi(\Pimple\Container $di): void
     {
@@ -28,10 +34,14 @@ class Service implements InjectionAwareInterface
         return $this->di;
     }
 
+    public function __construct()
+    {
+        $this->filesystem = new Filesystem();
+    }
+
     public function attachOrderConfig(\Model_Product $product, array &$data)
     {
-        $config = $product->config;
-        isset($config) ? $config = json_decode($config, true) : $config = [];
+        $config = json_decode($product->config ?? '', true) ?? [];
         $required = [
             'filename' => 'Product is not configured completely.',
         ];
@@ -55,7 +65,7 @@ class Service implements InjectionAwareInterface
      */
     public function action_create(\Model_ClientOrder $order)
     {
-        $c = json_decode($order->config, 1);
+        $c = json_decode($order->config ?? '', true);
         if (!is_array($c)) {
             throw new \FOSSBilling\Exception(sprintf('Order #%s config is missing', $order->id));
         }
@@ -141,18 +151,11 @@ class Service implements InjectionAwareInterface
         }
     }
 
-    public function hitDownload(\Model_ServiceDownloadable $model)
-    {
-        ++$model->downloads;
-        $model->updated_at = date('Y-m-d H:i:s');
-        $this->di['db']->store($model);
-    }
-
-    public function toApiArray(\Model_ServiceDownloadable $model, $deep = false, $identity = null)
+    public function toApiArray(\Model_ServiceDownloadable $model, $deep = false, $identity = null): array
     {
         $productService = $this->di['mod_service']('product');
         $result = [
-            'path' => $productService->getSavePath($model->filename),
+            'path' => Path::join(PATH_UPLOADS, md5($model->filename)),
             'filename' => $model->filename,
         ];
 
@@ -165,24 +168,27 @@ class Service implements InjectionAwareInterface
 
     public function uploadProductFile(\Model_Product $productModel)
     {
-        $request = $this->di['request'];
-        if ($request->hasFiles() == 0) {
-            throw new \FOSSBilling\Exception('Error uploading file');
-        }
-        $files = $request->getUploadedFiles();
-        $file = $files[0];
-
         $productService = $this->di['mod_service']('product');
-        move_uploaded_file($file->getRealPath(), $productService->getSavePath($file->getName()));
-        // End upload
+        $request = $this->di['request'];
 
-        if ($productModel->config) {
-            $config = json_decode($productModel->config, 1);
-        } else {
-            $config = [];
+        if ($request->files->count() == 0) {
+            throw new \FOSSBilling\Exception('Error uploading file.');
         }
+        $file = $request->files->get('file_data');
+        $fileName = $file->getClientOriginalName();
+        $fileNameHash = md5($fileName);
+        $fileSavePath = PATH_UPLOADS;
+        $file->move($fileSavePath, $fileNameHash);
 
-        $productService->removeOldFile($config);
+        $config = json_decode($productModel->config ?? '', true) ?? [];
+
+        // Remove old file.
+        if (isset($config['filename'])) {
+            $oldFilePath = Path::join(PATH_UPLOADS, md5($config['filename']));
+            if ($this->filesystem->exists($oldFilePath)) {
+                $this->filesystem->remove($oldFilePath);
+            }
+        }
 
         // Check if update_orders is true and update all orders
         if (isset($config['update_orders']) && $config['update_orders']) {
@@ -196,8 +202,8 @@ class Service implements InjectionAwareInterface
                 $this->updateProductFile($serviceDownloadable, $ordermodel);
 
                 // Update the filename
-                $oldconfig = json_decode($order['config'], 1);
-                $oldconfig['filename'] = $file->getName();
+                $oldconfig = json_decode($order['config'] ?? '', true);
+                $oldconfig['filename'] = $fileName;
 
                 // Save the change to the DB
                 $ordermodel->config = json_encode($oldconfig);
@@ -206,7 +212,7 @@ class Service implements InjectionAwareInterface
             }
         }
 
-        $config['filename'] = $file->getName();
+        $config['filename'] = $fileName;
         $productModel->config = json_encode($config);
         $productModel->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($productModel);
@@ -224,16 +230,17 @@ class Service implements InjectionAwareInterface
     public function updateProductFile(\Model_ServiceDownloadable $serviceDownloadable, \Model_ClientOrder $order)
     {
         $request = $this->di['request'];
-        if ($request->hasFiles() == 0) {
-            throw new \FOSSBilling\Exception('Error uploading file');
-        }
-        $productService = $this->di['mod_service']('product');
-        $files = $request->getUploadedFiles();
-        $file = $files[0];
-        move_uploaded_file($file->getRealPath(), $productService->getSavePath($file->getName()));
-        // End upload
 
-        $serviceDownloadable->filename = $file->getName();
+        if ($request->files->count() == 0) {
+            throw new \FOSSBilling\Exception('Error uploading file.');
+        }
+        $file = $request->files->get('file_data');
+        $fileName = $file->getClientOriginalName();
+        $fileNameHash = md5($fileName);
+        $fileSavePath = PATH_UPLOADS;
+        $file->move($fileSavePath, $fileNameHash);
+
+        $serviceDownloadable->filename = $fileName;
         $serviceDownloadable->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($serviceDownloadable);
 
@@ -256,32 +263,39 @@ class Service implements InjectionAwareInterface
         };
     }
 
-    public function sendDownload($filename, $path)
-    {
-        if (Environment::isTesting()) {
-            return;
-        }
-
-        header('Content-Type: application/force-download');
-        header('Content-Type: application/octet-stream');
-        header('Content-Type: application/download');
-        header('Content-Description: File Transfer');
-        header("Content-Disposition: attachment; filename=$filename" . ';');
-        header('Content-Transfer-Encoding: binary');
-        readfile($path);
-        flush();
-    }
-
     public function sendFile(\Model_ServiceDownloadable $serviceDownloadable)
     {
         $info = $this->toApiArray($serviceDownloadable);
-        $filename = $info['filename'];
-        $path = $info['path'];
-        if (!file_exists($path)) {
-            throw new \FOSSBilling\Exception('File can not be downloaded at the moment. Please contact support', null, 404);
+
+        $fileName = $info['filename'];
+        $filePath = $info['path'];
+        if (!$this->filesystem->exists($filePath)) {
+            throw new \FOSSBilling\Exception('File cannot be downloaded at the moment. Please contact support.', null, 404);
         }
-        $this->hitDownload($serviceDownloadable);
-        $this->sendDownload($filename, $path);
+
+        // Increase download hit count.
+        ++$serviceDownloadable->downloads;
+        $serviceDownloadable->updated_at = date('Y-m-d H:i:s');
+        $this->di['db']->store($serviceDownloadable);
+
+        // Send the file for download, unless in testing environment.
+        if (!Environment::isTesting()) {
+            $response = new Response($this->filesystem->readFile($filePath));
+
+            $disposition = $response->headers->makeDisposition(
+                HeaderUtils::DISPOSITION_ATTACHMENT,
+                $fileName
+            );
+
+            $response->headers->set('Content-Type', 'application/force-download');
+            $response->headers->set('Content-Type', 'application/octet-stream');
+            $response->headers->set('Content-Type', 'application/download');
+            $response->headers->set('Content-Description', 'File Transfer');
+            $response->headers->set('Content-Disposition', $disposition);
+            $response->headers->set('Content-Transfer-Encoding', 'binary');
+
+            $response->send();
+        }
 
         $this->di['logger']->info('Downloaded service %s file', $serviceDownloadable->id);
 
@@ -291,7 +305,7 @@ class Service implements InjectionAwareInterface
     public function saveProductConfig(\Model_Product $productModel, $data)
     {
         $config = [];
-        $config['update_orders'] = isset($data['update_orders']) ? (bool) $data['update_orders'] : false;
+        $config['update_orders'] = isset($data['update_orders']) && (bool) $data['update_orders'];
         $productModel->config = json_encode($config);
         $productModel->updated_at = date('Y-m-d H:i:s');
         $this->di['db']->store($productModel);
